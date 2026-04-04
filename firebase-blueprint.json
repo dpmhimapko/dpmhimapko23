@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile data including role and basic info.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "News": {
+      "title": "News Article",
+      "description": "News and activity publication.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string", "enum": ["Proker", "Reward", "Pengumuman", "Lainnya"] },
+        "date": { "type": "string", "format": "date-time" },
+        "imageUrl": { "type": "string" },
+        "author": { "type": "string" },
+        "authorUid": { "type": "string" }
+      },
+      "required": ["title", "content", "category", "date", "authorUid"]
+    },
+    "Member": {
+      "title": "Organization Member",
+      "description": "Member of DPM HIMA PKO.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "akd": { "type": "string" },
+        "period": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["name", "role", "akd", "period"]
+    },
+    "GalleryItem": {
+      "title": "Gallery Media",
+      "description": "Photo or video documentation.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["photo", "video"] },
+        "url": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "type", "url", "date"]
+    },
+    "Aspiration": {
+      "title": "Student Aspiration",
+      "description": "Feedback or suggestion from students.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "category": { "type": "string" },
+        "message": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "responded"] }
+      },
+      "required": ["message", "date", "status"]
+    }
+  },
+  "firestore": {
+    "users": { "schema": { "$ref": "User" }, "description": "User profiles" },
+    "news": { "schema": { "$ref": "News" }, "description": "News articles" },
+    "members": { "schema": { "$ref": "Member" }, "description": "Organization members" },
+    "gallery": { "schema": { "$ref": "GalleryItem" }, "description": "Gallery media" },
+    "aspirations": { "schema": { "$ref": "Aspiration" }, "description": "Student aspirations" }
+  }
+}

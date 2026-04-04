@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --color-maroon-50: #fdf2f2;
+  --color-maroon-100: #fde8e8;
+  --color-maroon-200: #fbd5d5;
+  --color-maroon-300: #f8b4b4;
+  --color-maroon-400: #f98080;
+  --color-maroon-500: #f05252;
+  --color-maroon-600: #e02424;
+  --color-maroon-700: #c81e1e;
+  --color-maroon-800: #9b1c1c;
+  --color-maroon-900: #771d1d;
+  --color-maroon-950: #4a0e0e;
+}
+
+@layer base {
+  body {
+    @apply font-sans text-gray-900 bg-white;
+  }
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
