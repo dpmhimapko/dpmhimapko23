@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
-import { db, auth, signOut, collection, query, orderBy, onSnapshot, deleteDoc, doc, OperationType, handleFirestoreError } from "../firebase";
+import { db, auth, signOut, collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, addDoc, OperationType, handleFirestoreError } from "../firebase";
 import { useAuth } from "../FirebaseProvider";
 import toast from "react-hot-toast";
 
@@ -28,6 +28,14 @@ export default function Admin() {
   const [aspirations, setAspirations] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [gallery, setGallery] = useState<any[]>([]);
+  
+  // Modal & Form States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<"news" | "members" | "gallery" | "aspirations" | null>(null);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [formData, setFormData] = useState<any>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
   const { user, role, loading: authLoading } = useAuth();
 
@@ -71,6 +79,59 @@ export default function Admin() {
       unsubGallery();
     };
   }, [role]);
+
+  const handleOpenModal = (type: any, item: any = null) => {
+    setModalType(type);
+    setEditingItem(item);
+    if (item) {
+      // Convert Firestore timestamp to string for date input if needed
+      const data = { ...item };
+      if (data.date && typeof data.date.toDate === 'function') {
+        data.date = data.date.toDate().toISOString().split('T')[0];
+      }
+      setFormData(data);
+    } else {
+      setFormData(type === 'news' ? { date: new Date().toISOString().split('T')[0] } : {});
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!modalType) return;
+    
+    setIsSubmitting(true);
+    try {
+      const dataToSave = { ...formData };
+      
+      // Convert date string back to Date object if present
+      if (dataToSave.date && typeof dataToSave.date === 'string') {
+        dataToSave.date = new Date(dataToSave.date);
+      }
+
+      if (editingItem) {
+        await updateDoc(doc(db, modalType, editingItem.id), dataToSave);
+        toast.success("Data berhasil diperbarui");
+      } else {
+        // Add default fields for new items
+        if (modalType === 'news') {
+          dataToSave.author = user?.displayName || "Admin";
+        }
+        if (modalType === 'members' && !dataToSave.order) {
+          dataToSave.order = members.length + 1;
+        }
+        
+        await addDoc(collection(db, modalType), dataToSave);
+        toast.success("Data berhasil ditambahkan");
+      }
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error("Submit error:", error);
+      toast.error("Gagal menyimpan data");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleDelete = async (coll: string, id: string) => {
     if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
@@ -283,21 +344,30 @@ export default function Admin() {
                   <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8">
                     <h3 className="text-lg font-bold text-gray-900 mb-8">Aksi Cepat</h3>
                     <div className="space-y-4">
-                      <button className="w-full flex items-center justify-between p-4 bg-maroon-50 text-maroon-600 rounded-2xl hover:bg-maroon-100 transition-all font-bold text-sm">
+                      <button 
+                        onClick={() => handleOpenModal('news')}
+                        className="w-full flex items-center justify-between p-4 bg-maroon-50 text-maroon-600 rounded-2xl hover:bg-maroon-100 transition-all font-bold text-sm"
+                      >
                         <div className="flex items-center space-x-3">
                           <Plus size={18} />
                           <span>Tambah Berita</span>
                         </div>
                         <ChevronRight size={16} />
                       </button>
-                      <button className="w-full flex items-center justify-between p-4 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all font-bold text-sm">
+                      <button 
+                        onClick={() => handleOpenModal('members')}
+                        className="w-full flex items-center justify-between p-4 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-100 transition-all font-bold text-sm"
+                      >
                         <div className="flex items-center space-x-3">
                           <Plus size={18} />
                           <span>Tambah Anggota</span>
                         </div>
                         <ChevronRight size={16} />
                       </button>
-                      <button className="w-full flex items-center justify-between p-4 bg-purple-50 text-purple-600 rounded-2xl hover:bg-purple-100 transition-all font-bold text-sm">
+                      <button 
+                        onClick={() => handleOpenModal('gallery')}
+                        className="w-full flex items-center justify-between p-4 bg-purple-50 text-purple-600 rounded-2xl hover:bg-purple-100 transition-all font-bold text-sm"
+                      >
                         <div className="flex items-center space-x-3">
                           <Plus size={18} />
                           <span>Upload Galeri</span>
@@ -336,7 +406,10 @@ export default function Admin() {
                       className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all shadow-sm"
                     />
                   </div>
-                  <button className="px-8 py-3.5 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 flex items-center justify-center space-x-2">
+                  <button 
+                    onClick={() => handleOpenModal('news')}
+                    className="px-8 py-3.5 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 flex items-center justify-center space-x-2"
+                  >
                     <Plus size={20} />
                     <span>Buat Berita Baru</span>
                   </button>
@@ -376,7 +449,10 @@ export default function Admin() {
                           </td>
                           <td className="px-8 py-6 text-right">
                             <div className="flex items-center justify-end space-x-2">
-                              <button className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg">
+                              <button 
+                                onClick={() => handleOpenModal('news', item)}
+                                className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
+                              >
                                 <Edit2 size={16} />
                               </button>
                               <button onClick={() => handleDelete("news", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
@@ -447,7 +523,10 @@ export default function Admin() {
                           </td>
                           <td className="px-8 py-6 text-right">
                             <div className="flex items-center justify-end space-x-2">
-                              <button className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg">
+                              <button 
+                                onClick={() => handleOpenModal('aspirations', item)}
+                                className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
+                              >
                                 <Edit2 size={16} />
                               </button>
                               <button onClick={() => handleDelete("aspirations", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
@@ -482,7 +561,10 @@ export default function Admin() {
                     <h2 className="text-2xl font-black text-gray-900 mb-2">Manajemen Anggota</h2>
                     <p className="text-gray-500 text-sm">Kelola daftar anggota dan struktur AKD.</p>
                   </div>
-                  <button className="px-8 py-3.5 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 flex items-center justify-center space-x-2">
+                  <button 
+                    onClick={() => handleOpenModal('members')}
+                    className="px-8 py-3.5 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 flex items-center justify-center space-x-2"
+                  >
                     <Plus size={20} />
                     <span>Tambah Anggota</span>
                   </button>
@@ -517,7 +599,10 @@ export default function Admin() {
                           <td className="px-8 py-6 text-sm text-gray-500">{item.period}</td>
                           <td className="px-8 py-6 text-right">
                             <div className="flex items-center justify-end space-x-2">
-                              <button className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg">
+                              <button 
+                                onClick={() => handleOpenModal('members', item)}
+                                className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
+                              >
                                 <Edit2 size={16} />
                               </button>
                               <button onClick={() => handleDelete("members", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
@@ -552,7 +637,10 @@ export default function Admin() {
                     <h2 className="text-2xl font-black text-gray-900 mb-2">Manajemen Galeri</h2>
                     <p className="text-gray-500 text-sm">Kelola dokumentasi foto dan video kegiatan.</p>
                   </div>
-                  <button className="px-8 py-3.5 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 flex items-center justify-center space-x-2">
+                  <button 
+                    onClick={() => handleOpenModal('gallery')}
+                    className="px-8 py-3.5 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 flex items-center justify-center space-x-2"
+                  >
                     <Plus size={20} />
                     <span>Tambah Media</span>
                   </button>
@@ -569,7 +657,10 @@ export default function Admin() {
                           referrerPolicy="no-referrer"
                         />
                         <div className="absolute top-4 right-4 flex space-x-2">
-                          <button className="p-2 bg-white/90 backdrop-blur-sm text-gray-600 rounded-xl hover:text-maroon-600 transition-colors shadow-sm">
+                          <button 
+                            onClick={() => handleOpenModal('gallery', item)}
+                            className="p-2 bg-white/90 backdrop-blur-sm text-gray-600 rounded-xl hover:text-maroon-600 transition-colors shadow-sm"
+                          >
                             <Edit2 size={16} />
                           </button>
                           <button onClick={() => handleDelete("gallery", item.id)} className="p-2 bg-white/90 backdrop-blur-sm text-gray-600 rounded-xl hover:text-red-600 transition-colors shadow-sm">
@@ -608,6 +699,296 @@ export default function Admin() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Modal Form */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div>
+                  <h3 className="text-xl font-black text-gray-900">
+                    {editingItem ? "Edit" : "Tambah"} {modalType === 'news' ? 'Berita' : modalType === 'members' ? 'Anggota' : modalType === 'gallery' ? 'Media' : 'Aspirasi'}
+                  </h3>
+                  <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mt-1">Silakan isi formulir di bawah ini</p>
+                </div>
+                <button 
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-900"
+                >
+                  <Plus className="rotate-45" size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-6">
+                {modalType === 'news' && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Judul Berita</label>
+                      <input
+                        required
+                        type="text"
+                        value={formData.title || ""}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        placeholder="Masukkan judul berita..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Kategori</label>
+                        <select
+                          required
+                          value={formData.category || ""}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        >
+                          <option value="">Pilih Kategori</option>
+                          <option value="Kegiatan">Kegiatan</option>
+                          <option value="Prestasi">Prestasi</option>
+                          <option value="Informasi">Informasi</option>
+                          <option value="Opini">Opini</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Tanggal</label>
+                        <input
+                          required
+                          type="date"
+                          value={formData.date || ""}
+                          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">URL Gambar</label>
+                      <input
+                        required
+                        type="url"
+                        value={formData.imageUrl || ""}
+                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Konten Berita</label>
+                      <textarea
+                        required
+                        rows={6}
+                        value={formData.content || ""}
+                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all resize-none"
+                        placeholder="Tulis isi berita di sini..."
+                      />
+                    </div>
+                  </>
+                )}
+
+                {modalType === 'members' && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Nama Lengkap</label>
+                      <input
+                        required
+                        type="text"
+                        value={formData.name || ""}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        placeholder="Nama lengkap anggota..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Jabatan</label>
+                        <input
+                          required
+                          type="text"
+                          value={formData.role || ""}
+                          onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                          placeholder="Contoh: Ketua Umum"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">AKD</label>
+                        <select
+                          required
+                          value={formData.akd || ""}
+                          onChange={(e) => setFormData({ ...formData, akd: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        >
+                          <option value="">Pilih AKD</option>
+                          <option value="Pengurus Harian">Pengurus Harian</option>
+                          <option value="Komisi">Komisi</option>
+                          <option value="Humas">Humas</option>
+                          <option value="Legislasi">Legislasi</option>
+                          <option value="PSDM">PSDM</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Periode</label>
+                        <input
+                          required
+                          type="text"
+                          value={formData.period || "2025"}
+                          onChange={(e) => setFormData({ ...formData, period: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                          placeholder="Contoh: 2025"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Urutan (Order)</label>
+                        <input
+                          required
+                          type="number"
+                          value={formData.order || ""}
+                          onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">URL Foto</label>
+                      <input
+                        required
+                        type="url"
+                        value={formData.photoUrl || ""}
+                        onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        placeholder="https://example.com/photo.jpg"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {modalType === 'gallery' && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Judul Media</label>
+                      <input
+                        required
+                        type="text"
+                        value={formData.title || ""}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        placeholder="Judul kegiatan..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Tipe Media</label>
+                        <select
+                          required
+                          value={formData.type || "image"}
+                          onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        >
+                          <option value="image">Gambar</option>
+                          <option value="video">Video</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Tanggal</label>
+                        <input
+                          required
+                          type="date"
+                          value={formData.date || ""}
+                          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">URL Media</label>
+                      <input
+                        required
+                        type="url"
+                        value={formData.url || ""}
+                        onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        placeholder="URL gambar atau video..."
+                      />
+                    </div>
+                    {formData.type === 'video' && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">URL Thumbnail (Video)</label>
+                        <input
+                          required
+                          type="url"
+                          value={formData.thumbnailUrl || ""}
+                          onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                          placeholder="URL thumbnail video..."
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {modalType === 'aspirations' && (
+                  <>
+                    <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                      <div className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Pesan Aspirasi</div>
+                      <p className="text-gray-900 text-sm leading-relaxed">{formData.message}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Status Tanggapan</label>
+                      <select
+                        required
+                        value={formData.status || "pending"}
+                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="processed">Diproses</option>
+                        <option value="completed">Selesai</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <div className="pt-6 flex items-center space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 px-8 py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-200 transition-all"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-[2] px-8 py-4 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    {isSubmitting ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <CheckCircle2 size={20} />
+                    )}
+                    <span>{editingItem ? "Simpan Perubahan" : "Tambah Data"}</span>
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

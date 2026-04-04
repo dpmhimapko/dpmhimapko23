@@ -4,11 +4,11 @@ import { Users, Filter, Search, Award, ShieldCheck, Target } from "lucide-react"
 import { cn } from "@/src/lib/utils";
 import { db, collection, query, orderBy, onSnapshot, OperationType, handleFirestoreError } from "../firebase";
 
-const periods = ["2024/2025", "2023/2024", "2022/2023"];
-const akds = ["Semua", "Pimpinan", "Komisi I", "Komisi II", "Badan Kehormatan", "Sekretariat"];
+const periods = ["2025", "2024/2025", "2023/2024"];
+const akds = ["Semua", "Pengurus Harian", "Komisi", "Humas", "Legislasi", "PSDM"];
 
 export default function Members() {
-  const [selectedPeriod, setSelectedPeriod] = useState("2024/2025");
+  const [selectedPeriod, setSelectedPeriod] = useState("2025");
   const [selectedAkd, setSelectedAkd] = useState("Semua");
   const [searchQuery, setSearchQuery] = useState("");
   const [memberList, setMemberList] = useState<any[]>([]);

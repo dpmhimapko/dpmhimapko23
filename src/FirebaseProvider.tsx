@@ -30,15 +30,25 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (firebaseUser) {
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const isMasterAdmin = firebaseUser.email === 'aahdan298@gmail.com' && firebaseUser.emailVerified;
+          
           if (userDoc.exists()) {
-            setRole(userDoc.data().role as 'admin' | 'user');
+            const userData = userDoc.data();
+            // If it's the master admin but the role in DB is not admin, update it or just set it in state
+            if (isMasterAdmin && userData.role !== 'admin') {
+              setRole('admin');
+              // Optionally update the DB
+              await setDoc(doc(db, 'users', firebaseUser.uid), { ...userData, role: 'admin' }, { merge: true });
+            } else {
+              setRole(userData.role as 'admin' | 'user');
+            }
           } else {
             // Create default user profile if not exists
             const newUser = {
               uid: firebaseUser.uid,
               email: firebaseUser.email,
               name: firebaseUser.displayName || '',
-              role: firebaseUser.email === 'aahdan298@gmail.com' ? 'admin' : 'user',
+              role: isMasterAdmin ? 'admin' : 'user',
               createdAt: new Date(),
             };
             await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
@@ -46,8 +56,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           }
         } catch (error) {
           console.error('Error fetching user role:', error);
-          // If it's the default admin email, we might still want to grant admin role in UI
-          if (firebaseUser.email === 'aahdan298@gmail.com') {
+          if (firebaseUser.email === 'aahdan298@gmail.com' && firebaseUser.emailVerified) {
             setRole('admin');
           }
         }
