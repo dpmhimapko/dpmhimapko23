@@ -49,14 +49,15 @@ export default function Profile() {
       </section>
 
       {/* Vision & Mission */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Vision */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
               className="bg-maroon-600 rounded-[32px] sm:rounded-[40px] p-8 sm:p-12 text-white relative overflow-hidden shadow-2xl shadow-maroon-600/20"
             >
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -73,9 +74,10 @@ export default function Profile() {
 
             {/* Mission */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
               className="flex flex-col justify-center"
             >
               <div className="inline-flex items-center space-x-2 text-maroon-600 font-bold mb-6">
@@ -112,9 +114,10 @@ export default function Profile() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-16">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
+              initial={{ opacity: 0, scale: 0.8, rotate: -2 }}
+              whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 1, ease: "easeOut" }}
               className="lg:w-1/2 relative"
             >
               <div className="absolute -top-10 -left-10 w-40 h-40 bg-maroon-100 rounded-full blur-3xl opacity-60" />
@@ -136,9 +139,10 @@ export default function Profile() {
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
               className="lg:w-1/2"
             >
               <div className="inline-flex items-center space-x-2 text-maroon-600 font-bold mb-6">
@@ -159,14 +163,20 @@ export default function Profile() {
       </section>
 
       {/* AKD Section */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Alat Kelengkapan Dewan (AKD)</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Struktur internal DPM HIMA PKO yang menjalankan fungsi-fungsi spesifik organisasi.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -176,10 +186,11 @@ export default function Profile() {
             ].map((akd, index) => (
               <motion.div
                 key={akd.name}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.15, duration: 0.6 }}
+                whileHover={{ y: -10, scale: 1.02 }}
                 className="p-8 rounded-3xl bg-gray-50 border border-gray-100 hover:bg-white hover:shadow-xl transition-all group text-center"
               >
                 <div className="w-16 h-16 bg-maroon-100 text-maroon-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-maroon-600 group-hover:text-white transition-colors">

@@ -58,10 +58,14 @@ export default function News() {
   return (
     <div className="pt-24 pb-20 bg-gray-50 min-h-screen">
       {/* Header */}
-      <section className="py-16 bg-white border-b border-gray-100">
+      <section className="py-16 bg-white border-b border-gray-100 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+            >
               <div className="inline-flex items-center space-x-2 text-maroon-600 font-bold mb-4">
                 <Newspaper size={20} />
                 <span className="uppercase tracking-wider text-sm">Publikasi & Media</span>
@@ -70,13 +74,18 @@ export default function News() {
               <p className="text-gray-600 max-w-2xl text-sm sm:text-base">
                 Update terbaru seputar program kerja, pengumuman penting, dan apresiasi prestasi mahasiswa PKO Universitas Pendidikan Indonesia.
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Filters & Search */}
-      <section className="py-8 sticky top-20 z-30 bg-gray-50/80 backdrop-blur-md">
+      <motion.section 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="py-8 sticky top-20 z-30 bg-gray-50/80 backdrop-blur-md"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
             {/* Category Tabs */}
@@ -111,7 +120,7 @@ export default function News() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* News Grid */}
       <section className="py-12">
@@ -126,10 +135,12 @@ export default function News() {
                   <motion.div
                     key={news.id}
                     layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: index * 0.05 }}
+                    transition={{ delay: (index % 3) * 0.1, duration: 0.5 }}
+                    whileHover={{ y: -10, scale: 1.02 }}
                     className="group bg-white rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-sm hover:shadow-2xl transition-all border border-gray-100 flex flex-col"
                   >
                     <div className="h-56 sm:h-64 relative overflow-hidden">

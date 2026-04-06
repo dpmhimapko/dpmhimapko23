@@ -41,10 +41,14 @@ export default function Gallery() {
   return (
     <div className="pt-24 pb-20 bg-gray-50 min-h-screen">
       {/* Header */}
-      <section className="py-16 bg-white border-b border-gray-100">
+      <section className="py-16 bg-white border-b border-gray-100 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+            >
               <div className="inline-flex items-center space-x-2 text-maroon-600 font-bold mb-4">
                 <ImageIcon size={20} />
                 <span className="uppercase tracking-wider text-sm">Dokumentasi Visual</span>
@@ -53,13 +57,18 @@ export default function Gallery() {
               <p className="text-gray-600 max-w-2xl text-sm sm:text-base">
                 Kumpulan momen berharga dan dokumentasi kegiatan DPM HIMA PKO Universitas Pendidikan Indonesia dalam bentuk foto dan video.
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Filters & Search */}
-      <section className="py-8 sticky top-20 z-30 bg-gray-50/80 backdrop-blur-md">
+      <motion.section 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="py-8 sticky top-20 z-30 bg-gray-50/80 backdrop-blur-md"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
             {/* Type Tabs */}
@@ -95,7 +104,7 @@ export default function Gallery() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Gallery Grid */}
       <section className="py-12">
@@ -110,11 +119,13 @@ export default function Gallery() {
                   <motion.div
                     key={item.id}
                     layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ delay: index * 0.05 }}
+                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ delay: (index % 4) * 0.1, duration: 0.5 }}
                     onClick={() => setSelectedItem(item)}
+                    whileHover={{ scale: 1.05, zIndex: 10 }}
                     className="group relative aspect-square rounded-[24px] sm:rounded-[32px] overflow-hidden bg-gray-200 cursor-pointer shadow-sm hover:shadow-2xl transition-all"
                   >
                     <img 

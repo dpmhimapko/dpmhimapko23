@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
-import { db, auth, signOut, collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, addDoc, OperationType, handleFirestoreError } from "../firebase";
+import { db, auth, signOut, collection, query, orderBy, onSnapshot, deleteDoc, doc, updateDoc, addDoc, OperationType, handleFirestoreError, writeBatch } from "../firebase";
 import { useAuth } from "../FirebaseProvider";
 import toast from "react-hot-toast";
 
@@ -28,6 +28,7 @@ export default function Admin() {
   const [aspirations, setAspirations] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [gallery, setGallery] = useState<any[]>([]);
+  const [filterDivision, setFilterDivision] = useState("Semua");
   
   // Modal & Form States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,6 +39,22 @@ export default function Admin() {
 
   const navigate = useNavigate();
   const { user, role, loading: authLoading } = useAuth();
+
+  const getDirectDriveUrl = (url: string) => {
+    if (!url) return "";
+    if (url.includes("drive.google.com")) {
+      let fileId = "";
+      if (url.includes("/file/d/")) {
+        fileId = url.split("/file/d/")[1].split("/")[0];
+      } else if (url.includes("id=")) {
+        fileId = url.split("id=")[1].split("&")[0];
+      }
+      if (fileId) {
+        return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+      }
+    }
+    return url;
+  };
 
   useEffect(() => {
     if (!authLoading && (!user || role !== 'admin')) {
@@ -104,18 +121,33 @@ export default function Admin() {
     try {
       const dataToSave = { ...formData };
       
+      // Auto-convert Drive URLs
+      if (dataToSave.photoUrl) dataToSave.photoUrl = getDirectDriveUrl(dataToSave.photoUrl);
+      if (dataToSave.imageUrl) dataToSave.imageUrl = getDirectDriveUrl(dataToSave.imageUrl);
+      if (dataToSave.url) dataToSave.url = getDirectDriveUrl(dataToSave.url);
+      if (dataToSave.thumbnailUrl) dataToSave.thumbnailUrl = getDirectDriveUrl(dataToSave.thumbnailUrl);
+
+      // Remove id if present as it's not a field in the document
+      if ('id' in dataToSave) {
+        delete dataToSave.id;
+      }
+      
       // Convert date string back to Date object if present
       if (dataToSave.date && typeof dataToSave.date === 'string') {
         dataToSave.date = new Date(dataToSave.date);
       }
 
       if (editingItem) {
+        if (modalType === 'news' && !dataToSave.authorUid) {
+          dataToSave.authorUid = user?.uid;
+        }
         await updateDoc(doc(db, modalType, editingItem.id), dataToSave);
         toast.success("Data berhasil diperbarui");
       } else {
         // Add default fields for new items
         if (modalType === 'news') {
           dataToSave.author = user?.displayName || "Admin";
+          dataToSave.authorUid = user?.uid;
         }
         if (modalType === 'members' && !dataToSave.order) {
           dataToSave.order = members.length + 1;
@@ -128,17 +160,18 @@ export default function Admin() {
     } catch (error) {
       console.error("Submit error:", error);
       toast.error("Gagal menyimpan data");
+      handleFirestoreError(error, editingItem ? OperationType.UPDATE : OperationType.CREATE, modalType);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (coll: string, id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus data ini?")) return;
     try {
       await deleteDoc(doc(db, coll, id));
       toast.success("Data berhasil dihapus");
     } catch (error) {
+      toast.error("Gagal menghapus data");
       handleFirestoreError(error, OperationType.DELETE, coll);
     }
   };
@@ -248,17 +281,17 @@ export default function Admin() {
       >
         {/* Top Header */}
         <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-40">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3 sm:space-x-4">
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
             >
               <ChevronRight className={cn("transition-transform", isSidebarOpen ? "rotate-180" : "rotate-0")} />
             </button>
-            <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 capitalize truncate max-w-[150px] sm:max-w-none">{activeTab}</h2>
+            <h2 className="text-base sm:text-xl font-extrabold text-gray-900 capitalize truncate max-w-[120px] sm:max-w-none">{activeTab}</h2>
           </div>
 
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-3 sm:space-x-6">
             <div className="flex flex-col text-right hidden sm:flex">
               <span className="text-sm font-bold text-gray-900">Admin Utama</span>
               <span className="text-xs text-emerald-500 font-bold flex items-center justify-end">
@@ -266,7 +299,7 @@ export default function Admin() {
                 Online
               </span>
             </div>
-            <div className="w-10 h-10 bg-gray-100 rounded-full border-2 border-white shadow-sm overflow-hidden">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-full border-2 border-white shadow-sm overflow-hidden">
               <img src="https://i.pravatar.cc/100?u=admin" alt="Admin" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             </div>
           </div>
@@ -305,40 +338,40 @@ export default function Admin() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Recent Aspirations */}
-                  <div className="lg:col-span-2 bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-gray-900">Aspirasi Terbaru</h3>
-                      <button onClick={() => setActiveTab("aspirations")} className="text-maroon-600 text-sm font-bold hover:underline">Lihat Semua</button>
-                    </div>
-                    <div className="divide-y divide-gray-50">
-                      {aspirations.slice(0, 5).map((asp) => (
-                        <div key={asp.id} className="p-6 hover:bg-gray-50 transition-colors flex items-start justify-between">
-                          <div className="flex items-start space-x-4">
-                            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 shrink-0">
-                              <MessageSquare size={20} />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 text-sm mb-1">{asp.category}</h4>
-                              <p className="text-gray-500 text-xs line-clamp-1 mb-2">{asp.message}</p>
-                              <div className="flex items-center space-x-3 text-[10px] font-bold uppercase tracking-wider">
-                                <span className={cn(
-                                  "px-2 py-0.5 rounded-full",
-                                  asp.status === 'pending' ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
-                                )}>{asp.status}</span>
-                                <span className="text-gray-400">{asp.date?.toDate().toLocaleDateString()}</span>
-                              </div>
+                <div className="bg-white rounded-[32px] sm:rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-6 sm:p-8 border-b border-gray-50 flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-gray-900">Aspirasi Terbaru</h3>
+                    <button onClick={() => setActiveTab("aspirations")} className="text-maroon-600 text-sm font-bold hover:underline">Lihat Semua</button>
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {aspirations.slice(0, 5).map((asp) => (
+                      <div key={asp.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors flex items-start justify-between">
+                        <div className="flex items-start space-x-3 sm:space-x-4">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-lg sm:rounded-xl flex items-center justify-center text-gray-400 shrink-0">
+                            <MessageSquare size={16} className="sm:w-5 sm:h-5" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-1 truncate">{asp.category}</h4>
+                            <p className="text-gray-500 text-[10px] sm:text-xs line-clamp-1 mb-2">{asp.message}</p>
+                            <div className="flex items-center space-x-2 sm:space-x-3 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full",
+                                asp.status === 'pending' ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
+                              )}>{asp.status}</span>
+                              <span className="text-gray-400">{asp.date?.toDate().toLocaleDateString()}</span>
                             </div>
                           </div>
-                          <button onClick={() => setActiveTab("aspirations")} className="p-2 text-gray-400 hover:text-maroon-600 transition-colors">
-                            <ChevronRight size={20} />
-                          </button>
                         </div>
-                      ))}
-                      {aspirations.length === 0 && (
-                        <div className="p-12 text-center text-gray-400 text-sm">Belum ada aspirasi masuk.</div>
-                      )}
-                    </div>
+                        <button onClick={() => setActiveTab("aspirations")} className="p-2 text-gray-400 hover:text-maroon-600 transition-colors">
+                          <ChevronRight size={18} />
+                        </button>
+                      </div>
+                    ))}
+                    {aspirations.length === 0 && (
+                      <div className="p-12 text-center text-gray-400 text-sm">Belum ada aspirasi masuk.</div>
+                    )}
                   </div>
+                </div>
 
                   {/* Quick Actions */}
                   <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8">
@@ -415,60 +448,93 @@ export default function Admin() {
                   </button>
                 </div>
 
-                <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-gray-50/50 border-b border-gray-100">
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Judul Berita</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Kategori</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Tanggal</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {news.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-8 py-6">
-                            <div className="flex items-center space-x-4">
-                              <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden shrink-0">
-                                <img src={item.imageUrl} alt="News" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="bg-white rounded-[32px] sm:rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
+                  {/* Desktop Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Judul Berita</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Kategori</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Tanggal</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {news.map((item) => (
+                          <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-8 py-6">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden shrink-0">
+                                  <img src={getDirectDriveUrl(item.imageUrl)} alt="News" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                </div>
+                                <span className="font-bold text-gray-900 text-sm line-clamp-1">{item.title}</span>
                               </div>
-                              <span className="font-bold text-gray-900 text-sm line-clamp-1">{item.title}</span>
-                            </div>
-                          </td>
-                          <td className="px-8 py-6">
-                            <span className="px-3 py-1 bg-maroon-50 text-maroon-600 text-[10px] font-bold rounded-full uppercase tracking-wider">{item.category}</span>
-                          </td>
-                          <td className="px-8 py-6 text-sm text-gray-500">{item.date?.toDate().toLocaleDateString()}</td>
-                          <td className="px-8 py-6">
-                            <span className="flex items-center text-emerald-500 text-[10px] font-bold uppercase tracking-wider">
-                              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2" />
-                              Published
-                            </span>
-                          </td>
-                          <td className="px-8 py-6 text-right">
-                            <div className="flex items-center justify-end space-x-2">
-                              <button 
-                                onClick={() => handleOpenModal('news', item)}
-                                className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button onClick={() => handleDelete("news", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {news.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="px-8 py-12 text-center text-gray-400 text-sm">Belum ada berita.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                            </td>
+                            <td className="px-8 py-6">
+                              <span className="px-3 py-1 bg-maroon-50 text-maroon-600 text-[10px] font-bold rounded-full uppercase tracking-wider">{item.category}</span>
+                            </td>
+                            <td className="px-8 py-6 text-sm text-gray-500">{item.date?.toDate().toLocaleDateString()}</td>
+                            <td className="px-8 py-6">
+                              <span className="flex items-center text-emerald-500 text-[10px] font-bold uppercase tracking-wider">
+                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2" />
+                                Published
+                              </span>
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button 
+                                  onClick={() => handleOpenModal('news', item)}
+                                  className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button onClick={() => handleDelete("news", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="md:hidden divide-y divide-gray-50">
+                    {news.map((item) => (
+                      <div key={item.id} className="p-6 space-y-4">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-16 h-16 bg-gray-100 rounded-2xl overflow-hidden shrink-0">
+                            <img src={getDirectDriveUrl(item.imageUrl)} alt="News" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-gray-900 text-sm line-clamp-2 leading-tight mb-1">{item.title}</h4>
+                            <span className="px-2 py-0.5 bg-maroon-50 text-maroon-600 text-[9px] font-bold rounded-full uppercase tracking-wider">{item.category}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="text-[10px] text-gray-500 font-medium">{item.date?.toDate().toLocaleDateString()}</div>
+                          <div className="flex items-center space-x-2">
+                            <button 
+                              onClick={() => handleOpenModal('news', item)}
+                              className="p-2.5 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-xl"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button onClick={() => handleDelete("news", item.id)} className="p-2.5 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-xl">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {news.length === 0 && (
+                    <div className="px-8 py-12 text-center text-gray-400 text-sm">Belum ada berita.</div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -489,60 +555,97 @@ export default function Admin() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-gray-50/50 border-b border-gray-100">
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Kategori</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Pesan</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Tanggal</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {aspirations.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-8 py-6">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
-                                <MessageSquare size={16} />
+                <div className="bg-white rounded-[32px] sm:rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
+                  {/* Desktop Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Kategori</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Pesan</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Tanggal</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {aspirations.map((item) => (
+                          <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-8 py-6">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+                                  <MessageSquare size={16} />
+                                </div>
+                                <span className="font-bold text-gray-900 text-sm">{item.category}</span>
                               </div>
-                              <span className="font-bold text-gray-900 text-sm">{item.category}</span>
+                            </td>
+                            <td className="px-8 py-6">
+                              <p className="text-gray-500 text-sm line-clamp-1 max-w-xs">{item.message}</p>
+                            </td>
+                            <td className="px-8 py-6 text-sm text-gray-500">{item.date?.toDate().toLocaleDateString()}</td>
+                            <td className="px-8 py-6">
+                              <span className={cn(
+                                "px-3 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider",
+                                item.status === 'pending' ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
+                              )}>{item.status}</span>
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button 
+                                  onClick={() => handleOpenModal('aspirations', item)}
+                                  className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button onClick={() => handleDelete("aspirations", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="md:hidden divide-y divide-gray-50">
+                    {aspirations.map((item) => (
+                      <div key={item.id} className="p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
+                              <MessageSquare size={16} />
                             </div>
-                          </td>
-                          <td className="px-8 py-6">
-                            <p className="text-gray-500 text-sm line-clamp-1 max-w-xs">{item.message}</p>
-                          </td>
-                          <td className="px-8 py-6 text-sm text-gray-500">{item.date?.toDate().toLocaleDateString()}</td>
-                          <td className="px-8 py-6">
-                            <span className={cn(
-                              "px-3 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider",
-                              item.status === 'pending' ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
-                            )}>{item.status}</span>
-                          </td>
-                          <td className="px-8 py-6 text-right">
-                            <div className="flex items-center justify-end space-x-2">
-                              <button 
-                                onClick={() => handleOpenModal('aspirations', item)}
-                                className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button onClick={() => handleDelete("aspirations", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {aspirations.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="px-8 py-12 text-center text-gray-400 text-sm">Belum ada aspirasi.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                            <span className="font-bold text-gray-900 text-sm">{item.category}</span>
+                          </div>
+                          <span className={cn(
+                            "px-2 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider",
+                            item.status === 'pending' ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
+                          )}>{item.status}</span>
+                        </div>
+                        <p className="text-gray-500 text-xs line-clamp-3 bg-gray-50 p-3 rounded-xl border border-gray-100 italic">"{item.message}"</p>
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="text-[10px] text-gray-500 font-medium">{item.date?.toDate().toLocaleDateString()}</div>
+                          <div className="flex items-center space-x-2">
+                            <button 
+                              onClick={() => handleOpenModal('aspirations', item)}
+                              className="p-2.5 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-xl"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button onClick={() => handleDelete("aspirations", item.id)} className="p-2.5 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-xl">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {aspirations.length === 0 && (
+                    <div className="px-8 py-12 text-center text-gray-400 text-sm">Belum ada aspirasi.</div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -561,64 +664,121 @@ export default function Admin() {
                     <h2 className="text-2xl font-black text-gray-900 mb-2">Manajemen Anggota</h2>
                     <p className="text-gray-500 text-sm">Kelola daftar anggota dan struktur AKD.</p>
                   </div>
-                  <button 
-                    onClick={() => handleOpenModal('members')}
-                    className="px-8 py-3.5 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 flex items-center justify-center space-x-2"
-                  >
-                    <Plus size={20} />
-                    <span>Tambah Anggota</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    <div className="relative">
+                      <Filter size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <select 
+                        value={filterDivision}
+                        onChange={(e) => setFilterDivision(e.target.value)}
+                        className="pl-10 pr-8 py-3.5 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all shadow-sm font-bold text-sm appearance-none min-w-[160px]"
+                      >
+                        <option value="Semua">Semua Divisi</option>
+                        <option value="BPH">BPH</option>
+                        <option value="Komisi">Komisi</option>
+                        <option value="Humas">Humas</option>
+                        <option value="Legislasi">Legislasi</option>
+                        <option value="PSDM">PSDM</option>
+                      </select>
+                    </div>
+                    <button 
+                      onClick={() => handleOpenModal('members')}
+                      className="px-8 py-3.5 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 flex items-center justify-center space-x-2"
+                    >
+                      <Plus size={20} />
+                      <span>Tambah Anggota</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-gray-50/50 border-b border-gray-100">
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Nama</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Jabatan</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">AKD</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Periode</th>
-                        <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {members.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-8 py-6">
-                            <div className="flex items-center space-x-4">
-                              <div className="w-10 h-10 bg-gray-100 rounded-xl overflow-hidden shrink-0">
-                                <img src={item.photoUrl} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="bg-white rounded-[32px] sm:rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
+                  {/* Desktop Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Nama</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Jabatan</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">AKD</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Periode</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {members
+                          .filter(m => filterDivision === "Semua" || m.akd === filterDivision)
+                          .map((item) => (
+                          <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-8 py-6">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-gray-100 rounded-xl overflow-hidden shrink-0">
+                                  <img src={getDirectDriveUrl(item.photoUrl)} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                </div>
+                                <span className="font-bold text-gray-900 text-sm">{item.name}</span>
                               </div>
-                              <span className="font-bold text-gray-900 text-sm">{item.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-8 py-6 text-sm text-gray-500">{item.role}</td>
-                          <td className="px-8 py-6">
-                            <span className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-full uppercase tracking-wider">{item.akd}</span>
-                          </td>
-                          <td className="px-8 py-6 text-sm text-gray-500">{item.period}</td>
-                          <td className="px-8 py-6 text-right">
-                            <div className="flex items-center justify-end space-x-2">
-                              <button 
-                                onClick={() => handleOpenModal('members', item)}
-                                className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
-                              >
-                                <Edit2 size={16} />
-                              </button>
-                              <button onClick={() => handleDelete("members", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {members.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="px-8 py-12 text-center text-gray-400 text-sm">Belum ada anggota.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                            </td>
+                            <td className="px-8 py-6 text-sm text-gray-500">{item.role}</td>
+                            <td className="px-8 py-6">
+                              <span className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-full uppercase tracking-wider">{item.akd}</span>
+                            </td>
+                            <td className="px-8 py-6 text-sm text-gray-500">{item.period}</td>
+                            <td className="px-8 py-6 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button 
+                                  onClick={() => handleOpenModal('members', item)}
+                                  className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button onClick={() => handleDelete("members", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile Cards */}
+                  <div className="md:hidden divide-y divide-gray-50">
+                    {members
+                      .filter(m => filterDivision === "Semua" || m.akd === filterDivision)
+                      .map((item) => (
+                      <div key={item.id} className="p-6 space-y-4">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 bg-gray-100 rounded-2xl overflow-hidden shrink-0">
+                            <img src={getDirectDriveUrl(item.photoUrl)} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-gray-900 text-sm truncate">{item.name}</h4>
+                            <p className="text-maroon-600 text-[10px] font-bold">{item.role}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded-full uppercase tracking-wider">{item.akd}</span>
+                            <span className="text-[10px] text-gray-400 font-bold">{item.period}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button 
+                              onClick={() => handleOpenModal('members', item)}
+                              className="p-2.5 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-xl"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button onClick={() => handleDelete("members", item.id)} className="p-2.5 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-xl">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {members.length === 0 && (
+                    <div className="px-8 py-12 text-center text-gray-400 text-sm">Belum ada anggota.</div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -651,7 +811,7 @@ export default function Admin() {
                     <div key={item.id} className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden group">
                       <div className="aspect-video relative overflow-hidden">
                         <img 
-                          src={item.type === 'video' ? item.thumbnailUrl : item.url} 
+                          src={getDirectDriveUrl(item.type === 'video' ? item.thumbnailUrl : item.url)} 
                           alt={item.title} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           referrerPolicy="no-referrer"
@@ -717,12 +877,12 @@ export default function Admin() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="p-6 sm:p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <div>
-                  <h3 className="text-xl font-black text-gray-900">
+                  <h3 className="text-lg sm:text-xl font-black text-gray-900">
                     {editingItem ? "Edit" : "Tambah"} {modalType === 'news' ? 'Berita' : modalType === 'members' ? 'Anggota' : modalType === 'gallery' ? 'Media' : 'Aspirasi'}
                   </h3>
-                  <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mt-1">Silakan isi formulir di bawah ini</p>
+                  <p className="text-gray-500 text-[10px] sm:text-xs font-bold uppercase tracking-wider mt-1">Silakan isi formulir di bawah ini</p>
                 </div>
                 <button 
                   onClick={() => setIsModalOpen(false)}
@@ -732,7 +892,7 @@ export default function Admin() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-6">
+              <form onSubmit={handleSubmit} className="p-6 sm:p-8 overflow-y-auto space-y-4 sm:space-y-6">
                 {modalType === 'news' && (
                   <>
                     <div className="space-y-2">
@@ -746,7 +906,7 @@ export default function Admin() {
                         placeholder="Masukkan judul berita..."
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Kategori</label>
                         <select
@@ -811,7 +971,7 @@ export default function Admin() {
                         placeholder="Nama lengkap anggota..."
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Jabatan</label>
                         <input
@@ -840,7 +1000,7 @@ export default function Admin() {
                         </select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Periode</label>
                         <input
@@ -874,6 +1034,48 @@ export default function Admin() {
                         placeholder="https://example.com/photo.jpg"
                       />
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">NIM</label>
+                        <input
+                          type="text"
+                          value={formData.nim || ""}
+                          onChange={(e) => setFormData({ ...formData, nim: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                          placeholder="Masukkan NIM..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Angkatan</label>
+                        <input
+                          type="text"
+                          value={formData.batch || ""}
+                          onChange={(e) => setFormData({ ...formData, batch: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                          placeholder="Contoh: 2022"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Instagram</label>
+                      <input
+                        type="text"
+                        value={formData.instagram || ""}
+                        onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        placeholder="@username"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Bio / Motto</label>
+                      <textarea
+                        rows={3}
+                        value={formData.bio || ""}
+                        onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all resize-none"
+                        placeholder="Tulis bio singkat..."
+                      />
+                    </div>
                   </>
                 )}
 
@@ -890,16 +1092,16 @@ export default function Admin() {
                         placeholder="Judul kegiatan..."
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Tipe Media</label>
                         <select
                           required
-                          value={formData.type || "image"}
+                          value={formData.type || "photo"}
                           onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                           className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
                         >
-                          <option value="image">Gambar</option>
+                          <option value="photo">Gambar</option>
                           <option value="video">Video</option>
                         </select>
                       </div>
@@ -956,8 +1158,8 @@ export default function Admin() {
                         className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
                       >
                         <option value="pending">Pending</option>
-                        <option value="processed">Diproses</option>
-                        <option value="completed">Selesai</option>
+                        <option value="reviewed">Ditinjau</option>
+                        <option value="responded">Ditanggapi</option>
                       </select>
                     </div>
                   </>

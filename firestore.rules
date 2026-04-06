@@ -111,11 +111,15 @@ service cloud.firestore {
     }
 
     function isValidMember(data) {
-      return hasOnlyAllowedFields(['name', 'role', 'akd', 'period', 'photoUrl', 'order']) &&
+      return hasOnlyAllowedFields(['name', 'role', 'akd', 'period', 'photoUrl', 'order', 'nim', 'batch', 'bio', 'instagram']) &&
              data.name is string && data.name.size() > 0 &&
              data.role is string &&
              data.akd is string &&
-             data.period is string;
+             data.period is string &&
+             (!('nim' in data) || data.nim is string) &&
+             (!('batch' in data) || data.batch is string) &&
+             (!('bio' in data) || data.bio is string) &&
+             (!('instagram' in data) || data.instagram is string);
     }
 
     function isValidGallery(data) {
@@ -123,14 +127,17 @@ service cloud.firestore {
              data.title is string &&
              data.type in ['photo', 'video'] &&
              isValidUrl(data.url) &&
-             data.date is timestamp;
+             data.date is timestamp &&
+             (!('thumbnailUrl' in data) || data.thumbnailUrl is string);
     }
 
     function isValidAspiration(data) {
       return hasOnlyAllowedFields(['name', 'email', 'category', 'message', 'date', 'status']) &&
              data.message is string && data.message.size() > 0 && data.message.size() < 1000 &&
              data.date is timestamp &&
-             data.status in ['pending', 'reviewed', 'responded'];
+             data.status in ['pending', 'reviewed', 'responded'] &&
+             (!('name' in data) || data.name is string) &&
+             (!('email' in data) || data.email is string);
     }
 
     // ===============================================================

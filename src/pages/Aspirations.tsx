@@ -55,10 +55,14 @@ export default function Aspirations() {
   return (
     <div className="pt-24 pb-20 bg-gray-50 min-h-screen">
       {/* Header */}
-      <section className="py-16 bg-white border-b border-gray-100">
+      <section className="py-16 bg-white border-b border-gray-100 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div>
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+            >
               <div className="inline-flex items-center space-x-2 text-maroon-600 font-bold mb-4">
                 <MessageSquare size={20} />
                 <span className="uppercase tracking-wider text-sm">Layanan Suara Mahasiswa</span>
@@ -67,7 +71,7 @@ export default function Aspirations() {
               <p className="text-gray-600 max-w-2xl text-sm sm:text-base">
                 Suara Anda adalah prioritas kami. Sampaikan aspirasi, kritik, atau saran Anda untuk kemajuan PKO Universitas Pendidikan Indonesia yang lebih baik.
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -77,7 +81,13 @@ export default function Aspirations() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Info Column */}
             <div className="lg:col-span-1 space-y-8">
-              <div className="bg-maroon-600 rounded-[32px] p-8 text-white shadow-2xl shadow-maroon-600/20 relative overflow-hidden">
+              <motion.div 
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+                className="bg-maroon-600 rounded-[32px] p-8 text-white shadow-2xl shadow-maroon-600/20 relative overflow-hidden"
+              >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
                 <div className="relative z-10">
                   <ShieldCheck size={32} className="mb-6 text-maroon-200" />
@@ -90,9 +100,15 @@ export default function Aspirations() {
                     <span>Enkripsi Data Aman</span>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm">
+              <motion.div 
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm"
+              >
                 <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center space-x-2">
                   <HelpCircle size={20} className="text-maroon-600" />
                   <span>Alur Aspirasi</span>
@@ -104,20 +120,33 @@ export default function Aspirations() {
                     { step: "03", title: "Tindak Lanjut", desc: "Aspirasi akan dibahas dalam rapat komisi terkait." },
                     { step: "04", title: "Respon", desc: "Hasil tindak lanjut akan dipublikasikan atau dikirim ke email." }
                   ].map((item, i) => (
-                    <div key={i} className="flex items-start space-x-4">
+                    <motion.div 
+                      key={i} 
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.4 + (i * 0.1) }}
+                      className="flex items-start space-x-4"
+                    >
                       <div className="text-maroon-600 font-black text-lg leading-none pt-1">{item.step}</div>
                       <div>
                         <h4 className="font-bold text-gray-900 text-sm mb-1">{item.title}</h4>
                         <p className="text-gray-500 text-xs leading-relaxed">{item.desc}</p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             {/* Form Column */}
-            <div className="lg:col-span-2">
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="lg:col-span-2"
+            >
               <div className="bg-white rounded-[40px] p-8 md:p-12 border border-gray-100 shadow-sm relative">
                 <AnimatePresence mode="wait">
                   {!isSubmitted ? (
@@ -260,7 +289,7 @@ export default function Aspirations() {
                   )}
                 </AnimatePresence>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>

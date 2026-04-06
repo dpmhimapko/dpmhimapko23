@@ -38,7 +38,11 @@
         "akd": { "type": "string" },
         "period": { "type": "string" },
         "photoUrl": { "type": "string" },
-        "order": { "type": "number" }
+        "order": { "type": "number" },
+        "nim": { "type": "string" },
+        "batch": { "type": "string" },
+        "bio": { "type": "string" },
+        "instagram": { "type": "string" }
       },
       "required": ["name", "role", "akd", "period"]
     },
