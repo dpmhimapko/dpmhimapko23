@@ -20,6 +20,12 @@
 @layer base {
   body {
     @apply font-sans text-gray-900 bg-white;
+    opacity: 1 !important;
+  }
+  
+  /* Force full opacity on all main content elements to prevent faintness */
+  main, section, div, img, h1, h2, h3, h4, p, span {
+    opacity: 1;
   }
 }
 
@@ -29,4 +35,14 @@
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.scroll-fade-right {
+  mask-image: linear-gradient(to right, black 85%, transparent 100%);
+}
+
+@media (min-width: 1024px) {
+  .scroll-fade-right {
+    mask-image: none;
+  }
 }

@@ -106,9 +106,24 @@ export default function Admin() {
       if (data.date && typeof data.date.toDate === 'function') {
         data.date = data.date.toDate().toISOString().split('T')[0];
       }
+      // Join images array into string for textarea
+      if (data.images && Array.isArray(data.images)) {
+        data.images = data.images.join('\n');
+      }
       setFormData(data);
     } else {
-      setFormData(type === 'news' ? { date: new Date().toISOString().split('T')[0] } : {});
+      const defaults: any = {};
+      if (type === 'news') defaults.date = new Date().toISOString().split('T')[0];
+      if (type === 'members') {
+        defaults.period = "2025/2026";
+        defaults.akd = "Pengurus Harian";
+      }
+      if (type === 'gallery') {
+        defaults.date = new Date().toISOString().split('T')[0];
+        defaults.type = "photo";
+        defaults.category = "Kegiatan";
+      }
+      setFormData(defaults);
     }
     setIsModalOpen(true);
   };
@@ -119,40 +134,69 @@ export default function Admin() {
     
     setIsSubmitting(true);
     try {
-      const dataToSave = { ...formData };
+      // Create a clean object with only allowed fields to prevent Firestore rule violations
+      const dataToSave: any = {};
+      
+      if (modalType === 'news') {
+        const allowed = ['title', 'content', 'category', 'date', 'imageUrl', 'images', 'author', 'authorUid'];
+        allowed.forEach(field => {
+          if (formData[field] !== undefined) dataToSave[field] = formData[field];
+        });
+        if (!editingItem) {
+          dataToSave.author = user?.displayName || "Admin";
+          dataToSave.authorUid = user?.uid;
+        } else if (!dataToSave.authorUid) {
+          dataToSave.authorUid = user?.uid;
+        }
+      } else if (modalType === 'gallery') {
+        const allowed = ['title', 'type', 'url', 'images', 'thumbnailUrl', 'date', 'category'];
+        allowed.forEach(field => {
+          if (formData[field] !== undefined) dataToSave[field] = formData[field];
+        });
+      } else if (modalType === 'members') {
+        const allowed = ['name', 'role', 'akd', 'period', 'photoUrl', 'order', 'nim', 'batch', 'bio', 'instagram'];
+        allowed.forEach(field => {
+          if (formData[field] !== undefined) dataToSave[field] = formData[field];
+        });
+        if (!editingItem && !dataToSave.order) {
+          dataToSave.order = members.length + 1;
+        }
+      } else if (modalType === 'aspirations') {
+        // Aspirations are usually read-only in admin, but just in case
+        const allowed = ['status', 'category', 'message', 'date'];
+        allowed.forEach(field => {
+          if (formData[field] !== undefined) dataToSave[field] = formData[field];
+        });
+      }
       
       // Auto-convert Drive URLs
       if (dataToSave.photoUrl) dataToSave.photoUrl = getDirectDriveUrl(dataToSave.photoUrl);
       if (dataToSave.imageUrl) dataToSave.imageUrl = getDirectDriveUrl(dataToSave.imageUrl);
       if (dataToSave.url) dataToSave.url = getDirectDriveUrl(dataToSave.url);
       if (dataToSave.thumbnailUrl) dataToSave.thumbnailUrl = getDirectDriveUrl(dataToSave.thumbnailUrl);
-
-      // Remove id if present as it's not a field in the document
-      if ('id' in dataToSave) {
-        delete dataToSave.id;
-      }
       
       // Convert date string back to Date object if present
       if (dataToSave.date && typeof dataToSave.date === 'string') {
         dataToSave.date = new Date(dataToSave.date);
       }
 
-      if (editingItem) {
-        if (modalType === 'news' && !dataToSave.authorUid) {
-          dataToSave.authorUid = user?.uid;
+      // Process additional images
+      if ((modalType === 'news' || modalType === 'gallery')) {
+        if (typeof dataToSave.images === 'string') {
+          dataToSave.images = dataToSave.images
+            .split('\n')
+            .map((url: string) => url.trim())
+            .filter((url: string) => url.length > 0)
+            .map((url: string) => getDirectDriveUrl(url));
+        } else if (!dataToSave.images) {
+          dataToSave.images = [];
         }
+      }
+
+      if (editingItem) {
         await updateDoc(doc(db, modalType, editingItem.id), dataToSave);
         toast.success("Data berhasil diperbarui");
       } else {
-        // Add default fields for new items
-        if (modalType === 'news') {
-          dataToSave.author = user?.displayName || "Admin";
-          dataToSave.authorUid = user?.uid;
-        }
-        if (modalType === 'members' && !dataToSave.order) {
-          dataToSave.order = members.length + 1;
-        }
-        
         await addDoc(collection(db, modalType), dataToSave);
         toast.success("Data berhasil ditambahkan");
       }
@@ -916,10 +960,10 @@ export default function Admin() {
                           className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
                         >
                           <option value="">Pilih Kategori</option>
-                          <option value="Kegiatan">Kegiatan</option>
-                          <option value="Prestasi">Prestasi</option>
-                          <option value="Informasi">Informasi</option>
-                          <option value="Opini">Opini</option>
+                          <option value="Proker">Proker</option>
+                          <option value="Reward">Reward</option>
+                          <option value="Pengumuman">Pengumuman</option>
+                          <option value="Lainnya">Lainnya</option>
                         </select>
                       </div>
                       <div className="space-y-2">
@@ -934,7 +978,7 @@ export default function Admin() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">URL Gambar</label>
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">URL Gambar Utama</label>
                       <input
                         required
                         type="url"
@@ -942,6 +986,19 @@ export default function Admin() {
                         onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                         className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
                         placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Gambar Tambahan</label>
+                        <span className="text-[10px] text-maroon-500 font-bold">Satu URL per baris</span>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={formData.images || ""}
+                        onChange={(e) => setFormData({ ...formData, images: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all resize-none"
+                        placeholder="Masukkan link foto-foto lainnya di sini..."
                       />
                     </div>
                     <div className="space-y-2">
@@ -1106,15 +1163,29 @@ export default function Admin() {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Tanggal</label>
-                        <input
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Kategori</label>
+                        <select
                           required
-                          type="date"
-                          value={formData.date || ""}
-                          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                          value={formData.category || "Kegiatan"}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                           className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
-                        />
+                        >
+                          <option value="Kegiatan">Kegiatan</option>
+                          <option value="Prestasi">Prestasi</option>
+                          <option value="Rapat">Rapat</option>
+                          <option value="Lainnya">Lainnya</option>
+                        </select>
                       </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Tanggal</label>
+                      <input
+                        required
+                        type="date"
+                        value={formData.date || ""}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-black text-gray-400 uppercase tracking-wider">URL Media</label>
@@ -1127,6 +1198,21 @@ export default function Admin() {
                         placeholder="URL gambar atau video..."
                       />
                     </div>
+                    {formData.type === 'photo' && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Gambar Tambahan</label>
+                          <span className="text-[10px] text-maroon-500 font-bold">Satu URL per baris</span>
+                        </div>
+                        <textarea
+                          rows={3}
+                          value={formData.images || ""}
+                          onChange={(e) => setFormData({ ...formData, images: e.target.value })}
+                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all resize-none"
+                          placeholder="Masukkan link foto-foto lainnya di sini..."
+                        />
+                      </div>
+                    )}
                     {formData.type === 'video' && (
                       <div className="space-y-2">
                         <label className="text-xs font-black text-gray-400 uppercase tracking-wider">URL Thumbnail (Video)</label>

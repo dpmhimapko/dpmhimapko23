@@ -23,6 +23,7 @@ service cloud.firestore {
     //   - category: string (required, ['Proker', 'Reward', 'Pengumuman', 'Lainnya'])
     //   - date: timestamp (required)
     //   - imageUrl: string (required, valid URL)
+    //   - images: list (optional, list of valid URLs)
     //   - author: string (required)
     //   - authorUid: string (required)
     //
@@ -42,6 +43,7 @@ service cloud.firestore {
     //   - title: string (required)
     //   - type: string (required, ['photo', 'video'])
     //   - url: string (required)
+    //   - images: list (optional, list of valid URLs)
     //   - thumbnailUrl: string (optional)
     //   - date: timestamp (required)
     //
@@ -71,8 +73,11 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "aahdan298@gmail.com" && request.auth.token.email_verified == true)); // Default admin
+        (
+          (request.auth.token.email == "aahdan298@gmail.com" && request.auth.token.email_verified == true) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+        );
     }
 
     function isValidEmail(email) {
@@ -100,12 +105,13 @@ service cloud.firestore {
     }
 
     function isValidNews(data) {
-      return hasOnlyAllowedFields(['title', 'content', 'category', 'date', 'imageUrl', 'author', 'authorUid']) &&
+      return hasOnlyAllowedFields(['title', 'content', 'category', 'date', 'imageUrl', 'images', 'author', 'authorUid']) &&
              data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
              data.content is string && data.content.size() > 0 && data.content.size() < 10000 &&
              data.category in ['Proker', 'Reward', 'Pengumuman', 'Lainnya'] &&
              data.date is timestamp &&
              isValidUrl(data.imageUrl) &&
+             (!('images' in data) || data.images is list) &&
              data.author is string &&
              data.authorUid is string;
     }
@@ -116,6 +122,8 @@ service cloud.firestore {
              data.role is string &&
              data.akd is string &&
              data.period is string &&
+             (!('photoUrl' in data) || isValidUrl(data.photoUrl)) &&
+             (!('order' in data) || data.order is number) &&
              (!('nim' in data) || data.nim is string) &&
              (!('batch' in data) || data.batch is string) &&
              (!('bio' in data) || data.bio is string) &&
@@ -123,12 +131,14 @@ service cloud.firestore {
     }
 
     function isValidGallery(data) {
-      return hasOnlyAllowedFields(['title', 'type', 'url', 'thumbnailUrl', 'date']) &&
+      return hasOnlyAllowedFields(['title', 'type', 'url', 'images', 'thumbnailUrl', 'date', 'category']) &&
              data.title is string &&
              data.type in ['photo', 'video'] &&
              isValidUrl(data.url) &&
              data.date is timestamp &&
-             (!('thumbnailUrl' in data) || data.thumbnailUrl is string);
+             (!('images' in data) || data.images is list) &&
+             (!('thumbnailUrl' in data) || data.thumbnailUrl is string) &&
+             (!('category' in data) || data.category is string);
     }
 
     function isValidAspiration(data) {

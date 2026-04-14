@@ -16,11 +16,23 @@ export default function News() {
   useEffect(() => {
     const q = query(collection(db, "news"), orderBy("date", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const news = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        date: doc.data().date?.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-      }));
+      const news = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let dateStr = "Tanpa Tanggal";
+        if (data.date) {
+          try {
+            const d = typeof data.date.toDate === 'function' ? data.date.toDate() : new Date(data.date);
+            dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+          } catch (e) {
+            console.error("Date conversion error:", e);
+          }
+        }
+        return {
+          id: doc.id,
+          ...data,
+          date: dateStr
+        };
+      });
       setNewsList(news);
       setLoading(false);
     }, (error) => {
@@ -80,31 +92,30 @@ export default function News() {
       </section>
 
       {/* Filters & Search */}
-      <motion.section 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="py-8 sticky top-20 z-30 bg-gray-50/80 backdrop-blur-md"
+      <section 
+        className="py-8 sticky top-20 z-30 bg-gray-50 border-b border-gray-100"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
             {/* Category Tabs */}
-            <div className="flex items-center space-x-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto scrollbar-hide">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={cn(
-                    "px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all flex items-center space-x-2",
-                    selectedCategory === cat 
-                      ? "bg-maroon-600 text-white shadow-lg shadow-maroon-600/20" 
-                      : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                  )}
-                >
-                  {cat !== "Semua" && getCategoryIcon(cat)}
-                  <span>{cat}</span>
-                </button>
-              ))}
+            <div className="w-full lg:w-auto -mx-4 px-4 sm:mx-0 sm:px-0 overflow-hidden relative scroll-fade-right">
+              <div className="flex items-center space-x-2 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide snap-x snap-mandatory">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      "px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all flex items-center space-x-2 snap-start",
+                      selectedCategory === cat 
+                        ? "bg-maroon-600 text-white shadow-lg shadow-maroon-600/20" 
+                        : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                    )}
+                  >
+                    {cat !== "Semua" && getCategoryIcon(cat)}
+                    <span>{cat}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Search Bar */}
@@ -120,87 +131,75 @@ export default function News() {
             </div>
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* News Grid */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <AnimatePresence mode="popLayout">
-            {filteredNews.length > 0 ? (
-              <motion.div 
-                layout
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
-              >
-                {filteredNews.map((news, index) => (
-                  <motion.div
-                    key={news.id}
-                    layout
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: (index % 3) * 0.1, duration: 0.5 }}
-                    whileHover={{ y: -10, scale: 1.02 }}
-                    className="group bg-white rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-sm hover:shadow-2xl transition-all border border-gray-100 flex flex-col"
-                  >
-                    <div className="h-56 sm:h-64 relative overflow-hidden">
-                      <img 
-                        src={news.imageUrl} 
-                        alt={news.title} 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute top-4 left-4">
-                        <span className={cn("px-3 sm:px-4 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded-full flex items-center space-x-1 shadow-lg", getCategoryColor(news.category))}>
-                          {getCategoryIcon(news.category)}
-                          <span>{news.category}</span>
-                        </span>
+          {filteredNews.length > 0 ? (
+            <div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
+            >
+              {filteredNews.map((news) => (
+                <div
+                  key={news.id}
+                  className="group bg-white rounded-[24px] sm:rounded-[32px] overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100 flex flex-col"
+                >
+                  <div className="h-56 sm:h-64 relative overflow-hidden">
+                    <img 
+                      src={news.imageUrl} 
+                      alt={news.title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute top-4 left-4">
+                      <span className={cn("px-3 sm:px-4 py-1 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded-full flex items-center space-x-1 shadow-lg", getCategoryColor(news.category))}>
+                        {getCategoryIcon(news.category)}
+                        <span>{news.category}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-6 sm:p-8 flex flex-col flex-grow">
+                    <div className="flex items-center space-x-3 sm:space-x-4 text-gray-400 text-[10px] sm:text-xs font-bold mb-3 sm:mb-4 uppercase tracking-wider">
+                      <div className="flex items-center space-x-1">
+                        <Calendar size={12} />
+                        <span>{news.date}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <User size={12} />
+                        <span>{news.author}</span>
                       </div>
                     </div>
-                    <div className="p-6 sm:p-8 flex flex-col flex-grow">
-                      <div className="flex items-center space-x-3 sm:space-x-4 text-gray-400 text-[10px] sm:text-xs font-bold mb-3 sm:mb-4 uppercase tracking-wider">
-                        <div className="flex items-center space-x-1">
-                          <Calendar size={12} />
-                          <span>{news.date}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <User size={12} />
-                          <span>{news.author}</span>
-                        </div>
-                      </div>
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 line-clamp-2 group-hover:text-maroon-600 transition-colors">
-                        {news.title}
-                      </h3>
-                      <p className="text-gray-600 text-xs sm:text-sm leading-relaxed line-clamp-3 mb-6 sm:mb-8">
-                        {news.content}
-                      </p>
-                      <div className="mt-auto">
-                        <Link 
-                          to={`/berita/${news.id}`} 
-                          className="inline-flex items-center px-5 sm:px-6 py-2.5 sm:py-3 bg-gray-900 text-white text-xs sm:text-sm font-bold rounded-xl hover:bg-maroon-600 transition-all group/btn"
-                        >
-                          <span>Baca Lengkap</span>
-                          <ArrowRight size={14} className="ml-2 transition-transform group-hover/btn:translate-x-1" />
-                        </Link>
-                      </div>
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 line-clamp-2 group-hover:text-maroon-600 transition-colors">
+                      {news.title}
+                    </h3>
+                    <p className="text-gray-600 text-xs sm:text-sm leading-relaxed line-clamp-3 mb-6 sm:mb-8">
+                      {news.content}
+                    </p>
+                    <div className="mt-auto">
+                      <Link 
+                        to={`/berita/${news.id}`} 
+                        className="inline-flex items-center px-5 sm:px-6 py-2.5 sm:py-3 bg-gray-900 text-white text-xs sm:text-sm font-bold rounded-xl hover:bg-maroon-600 transition-all group/btn"
+                      >
+                        <span>Baca Lengkap</span>
+                        <ArrowRight size={14} className="ml-2 transition-transform group-hover/btn:translate-x-1" />
+                      </Link>
                     </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-20"
-              >
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-400">
-                  <Newspaper size={40} />
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Tidak ada berita ditemukan</h3>
-                <p className="text-gray-500">Coba sesuaikan filter atau kata kunci pencarian Anda.</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="text-center py-20"
+            >
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-400">
+                <Newspaper size={40} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Tidak ada berita ditemukan</h3>
+              <p className="text-gray-500">Coba sesuaikan filter atau kata kunci pencarian Anda.</p>
+            </div>
+          )}
         </div>
       </section>
     </div>

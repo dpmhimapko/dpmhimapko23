@@ -1,106 +1,221 @@
 import { motion } from "motion/react";
-import { ShieldCheck, Target, History, Award, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Target, History, Award, CheckCircle2, Info } from "lucide-react";
 
-const vision = "Mewujudkan DPM HIMA PKO sebagai lembaga legislatif mahasiswa yang aspiratif, transparan, dan berintegritas demi kemajuan Pendidikan Kepelatihan Olahraga.";
+const vision = "Membangun lembaga yang aspiratif bagi mahasiswa dengan mengedepankan kolektif suara dalam pengambilan keputusan yang transparan, adaptif dan fleksibel untuk mahasiswa dalam meningkatkan kolaborasi agar mampu menjadi tempat untuk tumbuh, berkembang, belajar, dan berdinamika bagi seluruh mahasiswa Pendidikan Kepelatihan Olahraga FPOK UPI";
 
 const missions = [
-  "Menjalankan fungsi legislasi, pengawasan, dan anggaran secara optimal dan bertanggung jawab.",
-  "Membangun sistem komunikasi yang efektif dan terbuka bagi seluruh mahasiswa PKO.",
-  "Menampung dan memperjuangkan aspirasi mahasiswa PKO secara proaktif.",
-  "Meningkatkan sinergitas antara DPM, HIMA, dan seluruh elemen mahasiswa PKO.",
-  "Menjaga integritas dan profesionalisme pengurus dalam setiap aspek organisasi."
+  "Mengembangkan budaya organisasi yang transparan, adaptif, dan fleksibel.",
+  "Mendorong kolaborasi yang sinergis dan profesional.",
+  "Optimalisasi peran DPM HIMA PKO sebagai lembaga yang aspiratif menyuarakan, menyalurkan dan mengadvokasi ide, aspirasi, dan inovasi mahasiwa.",
+  "Menciptakan jaringan komunikasi dan organisasi yang baik dikalangan mahasiswa pendidikan kepelatihan olahraga."
 ];
 
-const history = `Pendidikan Kepelatihan Olahraga (PKO) merupakan salah satu program studi yang memiliki sejarah panjang dalam mencetak pelatih dan tenaga ahli olahraga profesional. Seiring dengan perkembangan dinamika kemahasiswaan, Dewan Perwakilan Mahasiswa (DPM) HIMA PKO dibentuk sebagai lembaga tertinggi dalam struktur organisasi mahasiswa di tingkat program studi.
+const logoMeaning = [
+  {
+    title: "Lingkaran",
+    desc: "Lingkaran yang tak bulat sempurna menjaga nyala warna, melambangkan kondisi yang tidak selalu sempurna tapi bisa menjaga isinya.",
+    img: "https://drive.google.com/file/d/1Ck8e-Fm2sEspIEMJTF-Uf1JwkhfzI8Af/view?usp=drive_link"
+  },
+  {
+    title: "Perisai R",
+    desc: "Shield and sign “R” melambangkan makna ressilience yang tangguh, adaptif dan teguh",
+    img: "https://drive.google.com/file/d/1-gKB3OMi46iwzey5BSIvol_DBpUpjJq6/view?usp=drive_link"
+  },
+  {
+    title: "Api",
+    desc: "Api menyala melambangkan semangat perjuangan, keberanian, dan daya tahan.",
+    img: "https://drive.google.com/file/d/1LLuLJraNq5f93jNbsXdA3lWoaJVDPqrQ/view?usp=drive_link"
+  }
+];
 
-DPM HIMA PKO lahir dari kebutuhan akan adanya check and balance terhadap kinerja eksekutif (HIMA PKO). Sejak awal berdirinya, DPM telah menjadi garda terdepan dalam mengawal aspirasi mahasiswa dan memastikan setiap kebijakan yang diambil oleh Himpunan berpihak pada kepentingan mahasiswa PKO.
-
-Hingga saat ini, DPM HIMA PKO terus bertransformasi menjadi organisasi yang lebih modern, memanfaatkan teknologi informasi untuk menjangkau konstituennya, dan tetap memegang teguh nilai-nilai sportivitas serta integritas yang menjadi ciri khas insan olahraga.`;
+const getDirectDriveUrl = (url: string) => {
+  if (!url) return "";
+  if (url.includes("drive.google.com")) {
+    let fileId = "";
+    if (url.includes("/file/d/")) {
+      fileId = url.split("/file/d/")[1].split("/")[0];
+    } else if (url.includes("id=")) {
+      fileId = url.split("id=")[1].split("&")[0];
+    }
+    if (fileId) {
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+    }
+  }
+  return url;
+};
 
 export default function Profile() {
   return (
-    <div className="pt-24 pb-20">
+    <div className="pt-24 pb-20 bg-gray-50">
       {/* Header */}
-      <section className="relative py-20 bg-white border-b border-gray-100 overflow-hidden">
+      <section className="relative py-16 sm:py-24 bg-white border-b border-gray-100 overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none">
+          <div className="absolute top-10 left-10 w-48 h-48 sm:w-64 sm:h-64 bg-maroon-600 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 right-10 w-64 h-64 sm:w-96 sm:h-96 bg-maroon-600 rounded-full blur-3xl" />
+        </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-20 h-20 bg-maroon-600 rounded-3xl flex items-center justify-center text-white mx-auto mb-8 shadow-2xl shadow-maroon-600/20"
+            className="w-20 h-20 sm:w-24 sm:h-24 bg-maroon-600 rounded-[28px] sm:rounded-[32px] flex items-center justify-center text-white mx-auto mb-8 sm:mb-10 shadow-2xl shadow-maroon-600/30"
           >
-            <ShieldCheck size={40} />
+            <ShieldCheck size={40} className="sm:w-12 sm:h-12" />
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-gray-900 mb-6 px-4"
+            className="text-3xl sm:text-5xl md:text-7xl font-black text-gray-900 mb-6 sm:mb-8 tracking-tight leading-tight"
           >
-            Profil DPM HIMA PKO UPI
+            Profil DPM HIMA PKO
           </motion.h1>
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto font-medium px-4"
+            className="inline-flex items-center space-x-2 sm:space-x-3 px-4 sm:px-6 py-2 bg-maroon-50 text-maroon-600 rounded-full font-bold text-xs sm:text-base mb-6"
           >
-            Mengenal lebih dalam jati diri, visi, dan perjuangan DPM HIMA PKO.
+            <Award size={16} className="sm:w-[18px] sm:h-[18px]" />
+            <span>Kabinet Parlemen Resilience 2025/2026</span>
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto font-medium leading-relaxed px-2"
+          >
+            Mengenal lebih dalam jati diri, visi, dan perjuangan DPM HIMA PKO dalam mewujudkan aspirasi mahasiswa.
           </motion.p>
         </div>
       </section>
 
       {/* Vision & Mission */}
-      <section className="py-24 bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-            {/* Vision */}
+      <section className="py-24 sm:py-32 bg-white overflow-hidden">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Vision - Minimalist & Elegant */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-24 sm:mb-32"
+          >
+            <div className="w-12 h-1 bg-maroon-600 mx-auto mb-10 rounded-full" />
+            <h2 className="text-sm sm:text-base font-bold text-maroon-600 uppercase tracking-[0.4em] mb-8">
+              Visi Utama
+            </h2>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-light text-gray-900 leading-tight tracking-tight max-w-4xl mx-auto">
+              {vision}
+            </p>
+          </motion.div>
+
+          {/* Mission - Clean Vertical List */}
+          <div className="max-w-3xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="bg-maroon-600 rounded-[32px] sm:rounded-[40px] p-8 sm:p-12 text-white relative overflow-hidden shadow-2xl shadow-maroon-600/20"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="relative z-10">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 sm:mb-8">
-                  <Target size={32} />
+              <h2 className="text-sm sm:text-base font-bold text-maroon-600 uppercase tracking-[0.4em] mb-4">
+                Misi Strategis
+              </h2>
+              <h3 className="text-3xl sm:text-4xl font-black text-gray-900">Pilar Perjuangan</h3>
+            </motion.div>
+
+            <div className="space-y-12 sm:space-y-16">
+              {missions.map((mission, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-start space-x-6 sm:space-x-10 group"
+                >
+                  <div className="shrink-0 flex flex-col items-center">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-gray-200 flex items-center justify-center text-gray-400 group-hover:border-maroon-600 group-hover:text-maroon-600 transition-colors duration-500">
+                      <span className="text-sm font-bold">{index + 1}</span>
+                    </div>
+                    {index !== missions.length - 1 && (
+                      <div className="w-px h-full bg-gray-100 mt-4" />
+                    )}
+                  </div>
+                  <div className="pt-1 sm:pt-2">
+                    <p className="text-lg sm:text-xl text-gray-700 leading-relaxed font-medium group-hover:text-gray-900 transition-colors">
+                      {mission}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Makna Logo Section */}
+      <section className="py-20 sm:py-32 bg-gray-50 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-12 sm:gap-20">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1 }}
+              className="lg:w-1/2 w-full"
+            >
+              <div className="relative group">
+                <div className="absolute -inset-4 bg-maroon-600/10 rounded-[40px] sm:rounded-[60px] blur-2xl transition-all group-hover:bg-maroon-600/20" />
+                <div className="relative bg-white p-6 sm:p-12 rounded-[32px] sm:rounded-[56px] shadow-2xl border border-gray-100">
+                  <img 
+                    src={getDirectDriveUrl("https://drive.google.com/file/d/1B5oH2pYlG9qk-s2sUbzp_toPRAhlT8zg/view?usp=drive_link")} 
+                    alt="Logo Parlemen Ressilience" 
+                    className="w-full h-auto object-contain transition-transform duration-700 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Visi Kami</h2>
-                <p className="text-lg sm:text-xl leading-relaxed font-medium italic">
-                  "{vision}"
-                </p>
               </div>
             </motion.div>
 
-            {/* Mission */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="flex flex-col justify-center"
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="lg:w-1/2"
             >
-              <div className="inline-flex items-center space-x-2 text-maroon-600 font-bold mb-6">
-                <Award size={20} />
-                <span className="uppercase tracking-wider text-sm">Misi Kami</span>
+              <div className="inline-flex items-center space-x-2 text-maroon-600 font-black mb-4 sm:mb-6">
+                <Info size={20} className="sm:w-6 sm:h-6" />
+                <span className="uppercase tracking-[0.2em] text-xs sm:text-sm">Filosofi Logo</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-6 sm:mb-8">Langkah Strategis Organisasi</h2>
-              <div className="space-y-4 sm:space-y-6">
-                {missions.map((mission, index) => (
+              <h2 className="text-2xl sm:text-5xl font-black text-gray-900 mb-6 sm:mb-8 leading-tight">Makna Parlemen Resilience</h2>
+              <p className="text-base sm:text-lg text-gray-600 mb-8 sm:mb-12 font-medium leading-relaxed">
+                Setiap elemen dalam logo kami merepresentasikan nilai-nilai perjuangan, adaptabilitas, dan semangat yang kami bawa dalam menjalankan amanah.
+              </p>
+
+              <div className="space-y-6 sm:space-y-8">
+                {logoMeaning.map((item, index) => (
                   <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
+                    key={item.title}
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex items-start space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-2xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100"
+                    className="flex items-center space-x-4 sm:space-x-6 group"
                   >
-                    <div className="mt-1 shrink-0">
-                      <CheckCircle2 className="text-maroon-600" size={20} />
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 shrink-0 bg-white rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-lg border border-gray-100 transition-transform group-hover:scale-110">
+                      <img 
+                        src={getDirectDriveUrl(item.img)} 
+                        alt={item.title} 
+                        className="w-full h-full object-contain"
+                        referrerPolicy="no-referrer"
+                      />
                     </div>
-                    <p className="text-gray-700 text-sm sm:text-base leading-relaxed font-medium">
-                      {mission}
-                    </p>
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-black text-gray-900 mb-1 sm:mb-2">{item.title}</h3>
+                      <p className="text-gray-600 text-xs sm:text-base leading-relaxed font-medium">
+                        {item.desc}
+                      </p>
+                    </div>
                   </motion.div>
                 ))}
               </div>
@@ -109,76 +224,27 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* History */}
-      <section className="py-24 bg-gray-50 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, rotate: -2 }}
-              whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="lg:w-1/2 relative"
-            >
-              <div className="absolute -top-10 -left-10 w-40 h-40 bg-maroon-100 rounded-full blur-3xl opacity-60" />
-              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-maroon-200 rounded-full blur-3xl opacity-60" />
-              <div className="relative z-10 rounded-[32px] sm:rounded-[40px] overflow-hidden shadow-2xl">
-                <img 
-                  src="https://images.unsplash.com/photo-1504450758481-7338eba7524a?q=80&w=2069&auto=format&fit=crop" 
-                  alt="Organization History" 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6 sm:p-10">
-                  <div className="text-white">
-                    <div className="text-3xl sm:text-4xl font-bold mb-1">10+</div>
-                    <div className="text-xs sm:text-sm font-medium text-white/80">Tahun Berdedikasi</div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="lg:w-1/2"
-            >
-              <div className="inline-flex items-center space-x-2 text-maroon-600 font-bold mb-6">
-                <History size={20} />
-                <span className="uppercase tracking-wider text-sm">Sejarah Singkat</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-6 sm:mb-8">Perjalanan DPM HIMA PKO</h2>
-              <div className="prose prose-sm sm:prose-lg text-gray-600 max-w-none">
-                {history.split('\n\n').map((paragraph, i) => (
-                  <p key={i} className="mb-4 sm:mb-6 leading-relaxed">
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
       {/* AKD Section */}
-      <section className="py-24 bg-white overflow-hidden">
+      <section className="py-20 sm:py-32 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="text-center mb-16"
+            className="text-center mb-12 sm:mb-20"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Alat Kelengkapan Dewan (AKD)</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Struktur internal DPM HIMA PKO yang menjalankan fungsi-fungsi spesifik organisasi.
+            <div className="inline-flex items-center space-x-2 text-maroon-600 font-black mb-4 sm:mb-6">
+              <ShieldCheck size={20} className="sm:w-6 sm:h-6" />
+              <span className="uppercase tracking-[0.2em] text-xs sm:text-sm">Struktur Kerja</span>
+            </div>
+            <h2 className="text-2xl sm:text-5xl font-black text-gray-900 mb-4 sm:mb-6 tracking-tight">Alat Kelengkapan Dewan</h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto font-medium px-4">
+              Struktur internal DPM HIMA PKO yang menjalankan fungsi-fungsi spesifik organisasi secara profesional.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-10">
             {[
               { name: "Komisi I", desc: "Membidangi urusan Legislasi dan Hukum Organisasi.", icon: ShieldCheck },
               { name: "Komisi II", desc: "Membidangi urusan Pengawasan Kinerja Himpunan.", icon: Target },
@@ -190,14 +256,14 @@ export default function Profile() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.15, duration: 0.6 }}
-                whileHover={{ y: -10, scale: 1.02 }}
-                className="p-8 rounded-3xl bg-gray-50 border border-gray-100 hover:bg-white hover:shadow-xl transition-all group text-center"
+                whileHover={{ y: -12, scale: 1.02 }}
+                className="p-8 sm:p-10 rounded-[32px] sm:rounded-[40px] bg-gray-50 border border-gray-100 hover:bg-white hover:shadow-2xl transition-all group text-center"
               >
-                <div className="w-16 h-16 bg-maroon-100 text-maroon-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-maroon-600 group-hover:text-white transition-colors">
-                  <akd.icon size={32} />
+                <div className="w-16 h-16 sm:w-20 h-20 bg-maroon-100 text-maroon-600 rounded-2xl sm:rounded-[28px] flex items-center justify-center mx-auto mb-6 sm:mb-8 group-hover:bg-maroon-600 group-hover:text-white transition-all duration-500 shadow-lg shadow-maroon-600/5">
+                  <akd.icon size={28} className="sm:w-9 sm:h-9" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{akd.name}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-3 sm:mb-4">{akd.name}</h3>
+                <p className="text-gray-600 text-sm sm:text-base leading-relaxed font-medium">
                   {akd.desc}
                 </p>
               </motion.div>

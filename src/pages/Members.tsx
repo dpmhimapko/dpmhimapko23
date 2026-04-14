@@ -66,10 +66,7 @@ export default function Members() {
       <section className="py-16 bg-white border-b border-gray-100 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
+            <div
             >
               <div className="inline-flex items-center space-x-2 text-maroon-600 font-bold mb-4">
                 <Users size={20} />
@@ -79,12 +76,9 @@ export default function Members() {
               <p className="text-gray-600 max-w-2xl text-sm sm:text-base">
                 Daftar pengurus DPM HIMA PKO Universitas Pendidikan Indonesia yang berdedikasi menjalankan amanah mahasiswa.
               </p>
-            </motion.div>
+            </div>
 
-            <motion.div 
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
+            <div 
               className="flex items-center space-x-4 w-full sm:w-auto"
             >
               <div className="relative w-full sm:w-auto">
@@ -97,36 +91,35 @@ export default function Members() {
                 </select>
                 <Filter size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Filters & Search */}
-      <motion.section 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="py-8 sticky top-20 z-30 bg-gray-50/80 backdrop-blur-md"
+      <section 
+        className="py-8 sticky top-20 z-30 bg-gray-50 border-b border-gray-100"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
             {/* AKD Tabs */}
-            <div className="flex items-center space-x-2 overflow-x-auto pb-2 lg:pb-0 w-full lg:w-auto scrollbar-hide">
-              {akds.map((akd) => (
-                <button
-                  key={akd}
-                  onClick={() => setSelectedAkd(akd)}
-                  className={cn(
-                    "px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all",
-                    selectedAkd === akd 
-                      ? "bg-maroon-600 text-white shadow-lg shadow-maroon-600/20" 
-                      : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                  )}
-                >
-                  {akd}
-                </button>
-              ))}
+            <div className="w-full lg:w-auto -mx-4 px-4 sm:mx-0 sm:px-0 overflow-hidden relative scroll-fade-right">
+              <div className="flex items-center space-x-2 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide snap-x snap-mandatory">
+                {akds.map((akd) => (
+                  <button
+                    key={akd}
+                    onClick={() => setSelectedAkd(akd)}
+                    className={cn(
+                      "px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all snap-start",
+                      selectedAkd === akd 
+                        ? "bg-maroon-600 text-white shadow-lg shadow-maroon-600/20" 
+                        : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                    )}
+                  >
+                    {akd}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Search Bar */}
@@ -142,7 +135,7 @@ export default function Members() {
             </div>
           </div>
         </div>
-      </motion.section>
+      </section>
 
       {/* Division Group Photo */}
       <AnimatePresence mode="wait">
@@ -203,17 +196,10 @@ export default function Members() {
                   layout
                   className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8"
                 >
-                  {filteredMembers.map((member, index) => (
-                    <motion.div
+                  {filteredMembers.map((member) => (
+                    <div
                       key={member.id}
-                      layout
-                      initial={{ opacity: 0, y: 30 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: "-50px" }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.5, delay: (index % 4) * 0.1 }}
                       onClick={() => setSelectedMember(member)}
-                      whileHover={{ y: -10, scale: 1.02 }}
                       className="group bg-white rounded-2xl sm:rounded-[32px] overflow-hidden shadow-sm hover:shadow-2xl transition-all border border-gray-100 cursor-pointer"
                     >
                       <div className="h-48 sm:h-72 relative overflow-hidden bg-gray-100">
@@ -222,19 +208,15 @@ export default function Members() {
                           alt={member.name} 
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           referrerPolicy="no-referrer"
-                          onLoad={(e) => (e.currentTarget.style.opacity = "1")}
-                          style={{ opacity: 0, transition: 'opacity 0.3s' }}
                         />
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          whileHover={{ opacity: 1 }}
-                          className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity flex items-end p-3 sm:p-6"
+                        <div 
+                          className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3 sm:p-6"
                         >
                           <div className="text-white">
                             <div className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-maroon-400 mb-1">{member.akd}</div>
                             <div className="text-[10px] sm:text-sm font-medium text-white/80">{member.period}</div>
                           </div>
-                        </motion.div>
+                        </div>
                       </div>
                       <div className="p-3 sm:p-6 text-center">
                         <h3 className="text-sm sm:text-xl font-bold text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem] sm:min-h-0">{member.name}</h3>
@@ -263,7 +245,7 @@ export default function Members() {
                           </div>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </motion.div>
               ) : (

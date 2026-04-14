@@ -54,11 +54,23 @@ export default function Home() {
   useEffect(() => {
     const qNews = query(collection(db, "news"), orderBy("date", "desc"), limit(3));
     const unsubNews = onSnapshot(qNews, (snapshot) => {
-      setLatestNews(snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        date: doc.data().date?.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
-      })));
+      setLatestNews(snapshot.docs.map(doc => {
+        const data = doc.data();
+        let dateStr = "Tanpa Tanggal";
+        if (data.date) {
+          try {
+            const d = typeof data.date.toDate === 'function' ? data.date.toDate() : new Date(data.date);
+            dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+          } catch (e) {
+            console.error("Date conversion error:", e);
+          }
+        }
+        return {
+          id: doc.id,
+          ...data,
+          date: dateStr
+        };
+      }));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, "news");
     });
@@ -67,10 +79,20 @@ export default function Home() {
     const unsubReward = onSnapshot(qReward, (snapshot) => {
       if (!snapshot.empty) {
         const doc = snapshot.docs[0];
+        const data = doc.data();
+        let dateStr = "Tanpa Tanggal";
+        if (data.date) {
+          try {
+            const d = typeof data.date.toDate === 'function' ? data.date.toDate() : new Date(data.date);
+            dateStr = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+          } catch (e) {
+            console.error("Date conversion error:", e);
+          }
+        }
         setBestStaff({
           id: doc.id,
-          ...doc.data(),
-          date: doc.data().date?.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+          ...data,
+          date: dateStr
         });
       }
       setLoading(false);
@@ -125,7 +147,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1]"
+            className="text-3xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-4 sm:mb-6 leading-[1.1]"
           >
             Wadah Aspirasi <br className="hidden sm:block" />
             <span className="text-maroon-600">Mahasiswa PKO UPI</span>
@@ -135,10 +157,10 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto mb-10 leading-relaxed px-4"
+            className="text-sm sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto mb-8 sm:mb-10 leading-relaxed px-4 font-medium"
           >
-            Berkomitmen untuk mewujudkan HIMA PKO yang lebih transparan, 
-            aspiratif, dan berintegritas melalui fungsi legislasi, pengawasan, dan anggaran.
+            Membangun lembaga yang aspiratif dengan mengedepankan kolektif suara, 
+            transparansi, dan kolaborasi untuk seluruh mahasiswa PKO FPOK UPI.
           </motion.p>
 
           <motion.div
@@ -183,12 +205,12 @@ export default function Home() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
-            className="text-center mb-12 sm:mb-16"
+            className="text-center mb-10 sm:mb-16"
           >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-6 leading-tight">
               Layanan & Informasi
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed px-4">
+            <p className="text-gray-600 max-w-2xl mx-auto text-xs sm:text-base leading-relaxed px-4">
               Akses cepat ke berbagai layanan dan informasi penting seputar DPM HIMA PKO.
             </p>
           </motion.div>
@@ -327,11 +349,7 @@ export default function Home() {
       {/* Latest News Preview */}
       <section className="py-16 sm:py-24 bg-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
+          <div 
             className="flex flex-col md:flex-row justify-between items-end mb-10 sm:mb-12"
           >
             <div className="mb-6 md:mb-0 text-center md:text-left w-full md:w-auto">
@@ -341,17 +359,12 @@ export default function Home() {
             <Link to="/berita" className="text-maroon-600 font-bold flex items-center hover:underline text-sm sm:text-base mx-auto md:mx-0">
               Lihat Semua Berita <ArrowRight size={18} className="ml-2" />
             </Link>
-          </motion.div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {latestNews.map((news, i) => (
-              <motion.div
+            {latestNews.map((news) => (
+              <div
                 key={news.id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -10, scale: 1.02 }}
                 className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100"
               >
                 <div className="h-56 bg-gray-200 relative">
@@ -380,7 +393,7 @@ export default function Home() {
                     <ArrowRight size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
                   </Link>
                 </div>
-              </motion.div>
+              </div>
             ))}
             {latestNews.length === 0 && (
               <div className="col-span-full py-20 text-center text-gray-400 text-sm">Belum ada berita terbaru.</div>

@@ -1,34 +1,56 @@
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
-import { Calendar, User, ArrowLeft, Share2, Tag, Trophy, Star, Megaphone, Newspaper } from "lucide-react";
+import { Calendar, User, ArrowLeft, Share2, Tag, Trophy, Star, Megaphone, Newspaper, ChevronLeft, ChevronRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/src/lib/utils";
-
-const mockNews = [
-  { 
-    id: "1", 
-    title: "Sukses Gelar Rapat Kerja Tahunan Periode 2024/2025", 
-    content: `DPM HIMA PKO telah melaksanakan rapat kerja untuk merumuskan program kerja strategis selama satu tahun ke depan. Kegiatan ini dihadiri oleh seluruh pengurus dan perwakilan dari HIMA PKO.
-
-### Poin Utama Rapat Kerja:
-1. **Penguatan Fungsi Legislasi**: Menyusun regulasi internal yang lebih adaptif.
-2. **Optimalisasi Pengawasan**: Meningkatkan transparansi kinerja himpunan.
-3. **Digitalisasi Aspirasi**: Meluncurkan platform aspirasi online.
-
-Ketua Umum DPM HIMA PKO menyatakan bahwa tahun ini fokus utama adalah pada integritas dan keterbukaan informasi. "Kami ingin setiap mahasiswa PKO merasa memiliki wadah untuk bersuara," ujarnya.
-
-Kegiatan ditutup dengan sesi foto bersama dan ramah tamah antar pengurus.`, 
-    category: "Proker", 
-    date: "12 Maret 2024", 
-    imageUrl: "https://picsum.photos/seed/pko1/1200/600",
-    author: "Humas DPM"
-  },
-  // ... other news would be fetched from DB
-];
+import { db, doc, getDoc, OperationType, handleFirestoreError } from "../firebase";
 
 export default function NewsDetail() {
   const { id } = useParams();
-  const news = mockNews.find(n => n.id === id) || mockNews[0];
+  const [news, setNews] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const getDirectDriveUrl = (url: string) => {
+    if (!url) return "";
+    if (url.includes("drive.google.com")) {
+      let fileId = "";
+      if (url.includes("/file/d/")) {
+        fileId = url.split("/file/d/")[1].split("/")[0];
+      } else if (url.includes("id=")) {
+        fileId = url.split("id=")[1].split("&")[0];
+      }
+      if (fileId) {
+        return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+      }
+    }
+    return url;
+  };
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      if (!id) return;
+      try {
+        const docRef = doc(db, "news", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setNews({
+            id: docSnap.id,
+            ...data,
+            date: data.date?.toDate().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+          });
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.GET, `news/${id}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, [id]);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -48,6 +70,24 @@ export default function NewsDetail() {
     }
   };
 
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (!news) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <h2 className="text-2xl font-bold mb-4">Berita tidak ditemukan</h2>
+      <Link to="/berita" className="text-maroon-600 font-bold hover:underline">Kembali ke Berita</Link>
+    </div>
+  );
+
+  const allImages = [news.imageUrl, ...(news.images || [])].filter(Boolean);
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
+  };
+
   return (
     <div className="pt-24 pb-20 bg-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -61,9 +101,7 @@ export default function NewsDetail() {
         </Link>
 
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="mb-10"
         >
           <div className="flex items-center space-x-4 mb-6">
@@ -96,34 +134,67 @@ export default function NewsDetail() {
               <Share2 size={18} />
             </button>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Featured Image */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-[40px] overflow-hidden mb-12 shadow-2xl shadow-gray-200"
-        >
-          <img 
-            src={news.imageUrl} 
-            alt={news.title} 
-            className="w-full h-auto object-cover"
-            referrerPolicy="no-referrer"
-          />
-        </motion.div>
+        {/* Featured Image Slider */}
+        <div className="relative group mb-12">
+          <div
+            className="rounded-[40px] overflow-hidden shadow-2xl shadow-gray-200 aspect-video bg-gray-50 relative"
+          >
+            <img 
+              src={getDirectDriveUrl(allImages[currentImageIndex])} 
+              alt={`${news.title} - ${currentImageIndex + 1}`} 
+              className="w-full h-full object-contain transition-all duration-500 relative z-10"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+
+          {allImages.length > 1 && (
+            <>
+              {/* Navigation Arrows */}
+              <button 
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white shadow-lg hover:bg-gray-50 text-gray-900 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button 
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white shadow-lg hover:bg-gray-50 text-gray-900 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20"
+              >
+                <ChevronRight size={24} />
+              </button>
+
+              {/* Indicators */}
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+                {allImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={cn(
+                      "w-2 h-2 rounded-full transition-all",
+                      currentImageIndex === idx ? "bg-maroon-600 w-6" : "bg-gray-300"
+                    )}
+                  />
+                ))}
+              </div>
+
+              {/* Counter */}
+              <div className="absolute top-6 right-6 px-3 py-1 bg-white/80 backdrop-blur-md text-gray-900 text-[10px] font-bold rounded-full border border-gray-100 shadow-sm z-20">
+                {currentImageIndex + 1} / {allImages.length}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Content */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
+        <div
           className="prose prose-lg prose-maroon max-w-none text-gray-700 leading-relaxed"
         >
           <div className="markdown-body">
             <ReactMarkdown>{news.content}</ReactMarkdown>
           </div>
-        </motion.div>
+        </div>
 
         {/* Tags */}
         <div className="mt-16 pt-8 border-t border-gray-100">
