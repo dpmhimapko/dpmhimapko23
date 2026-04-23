@@ -16,6 +16,7 @@ const tabs = [
   { id: "dashboard", name: "Dashboard", icon: LayoutDashboard },
   { id: "news", name: "Berita", icon: Newspaper },
   { id: "members", name: "Anggota", icon: Users },
+  { id: "akd", name: "Struktur AKD", icon: ShieldCheck },
   { id: "gallery", name: "Galeri", icon: ImageIcon },
   { id: "aspirations", name: "Aspirasi", icon: MessageSquare },
   { id: "settings", name: "Pengaturan", icon: Settings },
@@ -28,11 +29,12 @@ export default function Admin() {
   const [aspirations, setAspirations] = useState<any[]>([]);
   const [members, setMembers] = useState<any[]>([]);
   const [gallery, setGallery] = useState<any[]>([]);
+  const [divisions, setDivisions] = useState<any[]>([]);
   const [filterDivision, setFilterDivision] = useState("Semua");
   
   // Modal & Form States
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<"news" | "members" | "gallery" | "aspirations" | null>(null);
+  const [modalType, setModalType] = useState<"news" | "members" | "gallery" | "aspirations" | "divisions" | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -89,11 +91,18 @@ export default function Admin() {
       handleFirestoreError(error, OperationType.LIST, "gallery");
     });
 
+    const unsubDivisions = onSnapshot(query(collection(db, "divisions"), orderBy("name", "asc")), (snap) => {
+      setDivisions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, "divisions");
+    });
+
     return () => {
       unsubNews();
       unsubAspirations();
       unsubMembers();
       unsubGallery();
+      unsubDivisions();
     };
   }, [role]);
 
@@ -116,7 +125,7 @@ export default function Admin() {
       if (type === 'news') defaults.date = new Date().toISOString().split('T')[0];
       if (type === 'members') {
         defaults.period = "2025/2026";
-        defaults.akd = "Pengurus Harian";
+        defaults.akd = "BPH";
       }
       if (type === 'gallery') {
         defaults.date = new Date().toISOString().split('T')[0];
@@ -164,6 +173,11 @@ export default function Admin() {
       } else if (modalType === 'aspirations') {
         // Aspirations are usually read-only in admin, but just in case
         const allowed = ['status', 'category', 'message', 'date'];
+        allowed.forEach(field => {
+          if (formData[field] !== undefined) dataToSave[field] = formData[field];
+        });
+      } else if (modalType === 'divisions') {
+        const allowed = ['name', 'description', 'photoUrl'];
         allowed.forEach(field => {
           if (formData[field] !== undefined) dataToSave[field] = formData[field];
         });
@@ -749,7 +763,11 @@ export default function Admin() {
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {members
-                          .filter(m => filterDivision === "Semua" || m.akd === filterDivision)
+                          .filter(m => {
+                            if (filterDivision === "Semua") return true;
+                            const memberAkd = m.akd === "Pengurus Harian" ? "BPH" : m.akd;
+                            return memberAkd === filterDivision;
+                          })
                           .map((item) => (
                           <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                             <td className="px-8 py-6">
@@ -762,7 +780,7 @@ export default function Admin() {
                             </td>
                             <td className="px-8 py-6 text-sm text-gray-500">{item.role}</td>
                             <td className="px-8 py-6">
-                              <span className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-full uppercase tracking-wider">{item.akd}</span>
+                              <span className="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold rounded-full uppercase tracking-wider">{item.akd === "Pengurus Harian" ? "BPH" : item.akd}</span>
                             </td>
                             <td className="px-8 py-6 text-sm text-gray-500">{item.period}</td>
                             <td className="px-8 py-6 text-right">
@@ -787,7 +805,11 @@ export default function Admin() {
                   {/* Mobile Cards */}
                   <div className="md:hidden divide-y divide-gray-50">
                     {members
-                      .filter(m => filterDivision === "Semua" || m.akd === filterDivision)
+                      .filter(m => {
+                        if (filterDivision === "Semua") return true;
+                        const memberAkd = m.akd === "Pengurus Harian" ? "BPH" : m.akd;
+                        return memberAkd === filterDivision;
+                      })
                       .map((item) => (
                       <div key={item.id} className="p-6 space-y-4">
                         <div className="flex items-center space-x-4">
@@ -801,7 +823,7 @@ export default function Admin() {
                         </div>
                         <div className="flex items-center justify-between pt-2">
                           <div className="flex items-center space-x-2">
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded-full uppercase tracking-wider">{item.akd}</span>
+                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[9px] font-bold rounded-full uppercase tracking-wider">{item.akd === "Pengurus Harian" ? "BPH" : item.akd}</span>
                             <span className="text-[10px] text-gray-400 font-bold">{item.period}</span>
                           </div>
                           <div className="flex items-center space-x-2">
@@ -822,6 +844,78 @@ export default function Admin() {
 
                   {members.length === 0 && (
                     <div className="px-8 py-12 text-center text-gray-400 text-sm">Belum ada anggota.</div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {/* AKD Tab */}
+            {activeTab === "akd" && (
+              <motion.div
+                key="akd"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-8"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Manajemen AKD</h2>
+                    <p className="text-gray-500 text-sm">Kelola foto bersama dan deskripsi setiap alat kelengkapan dewan.</p>
+                  </div>
+                  <button 
+                    onClick={() => handleOpenModal('divisions')}
+                    className="px-8 py-3.5 bg-maroon-600 text-white font-bold rounded-2xl hover:bg-maroon-700 transition-all shadow-lg shadow-maroon-600/20 flex items-center justify-center space-x-2"
+                  >
+                    <Plus size={20} />
+                    <span>Tambah Info AKD</span>
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-[32px] sm:rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Nama AKD</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Deskripsi Singkat</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Aksi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {divisions.map((item) => (
+                          <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-8 py-6">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-12 h-16 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-100">
+                                  <img src={getDirectDriveUrl(item.photoUrl)} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                </div>
+                                <span className="font-bold text-gray-900 text-sm">{item.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-8 py-6">
+                              <p className="text-gray-500 text-sm line-clamp-2 max-w-md">{item.description}</p>
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                              <div className="flex items-center justify-end space-x-2">
+                                <button 
+                                  onClick={() => handleOpenModal('divisions', item)}
+                                  className="p-2 text-gray-400 hover:text-maroon-600 transition-colors bg-gray-50 rounded-lg"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button onClick={() => handleDelete("divisions", item.id)} className="p-2 text-gray-400 hover:text-red-600 transition-colors bg-gray-50 rounded-lg">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {divisions.length === 0 && (
+                    <div className="px-8 py-12 text-center text-gray-400 text-sm">Belum ada data AKD. Klik Tambah Info AKD untuk memulai.</div>
                   )}
                 </div>
               </motion.div>
@@ -1049,7 +1143,7 @@ export default function Admin() {
                           className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
                         >
                           <option value="">Pilih AKD</option>
-                          <option value="Pengurus Harian">Pengurus Harian</option>
+                          <option value="BPH">BPH</option>
                           <option value="Komisi">Komisi</option>
                           <option value="Humas">Humas</option>
                           <option value="Legislasi">Legislasi</option>
@@ -1131,6 +1225,44 @@ export default function Admin() {
                         onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                         className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all resize-none"
                         placeholder="Tulis bio singkat..."
+                      />
+                    </div>
+                  </>
+                )}
+
+                {modalType === 'divisions' && (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Nama AKD</label>
+                      <input
+                        required
+                        type="text"
+                        value={formData.name || ""}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        placeholder="Contoh: BPH atau Komisi"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Link Foto Barengan (Google Drive)</label>
+                      <input
+                        required
+                        type="url"
+                        value={formData.photoUrl || ""}
+                        onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
+                        placeholder="Masukkan link Google Drive foto grup AKD"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Deskripsi AKD</label>
+                      <textarea
+                        required
+                        rows={5}
+                        value={formData.description || ""}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all resize-none"
+                        placeholder="Jelaskan peran dan fungsi AKD ini..."
                       />
                     </div>
                   </>

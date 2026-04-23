@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
-import { Calendar, User, ArrowLeft, Share2, Tag, Trophy, Star, Megaphone, Newspaper, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, User, ArrowLeft, Share2, Tag, Trophy, Star, Megaphone, Newspaper, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/src/lib/utils";
 import { db, doc, getDoc, OperationType, handleFirestoreError } from "../firebase";
@@ -101,50 +101,65 @@ export default function NewsDetail() {
         </Link>
 
         {/* Header */}
-        <div
-          className="mb-10"
-        >
-          <div className="flex items-center space-x-4 mb-6">
-            <span className={cn("px-4 py-1.5 text-xs font-bold rounded-full flex items-center space-x-1", getCategoryColor(news.category))}>
+        <div className="mb-12">
+          <div className="flex flex-wrap items-center gap-4 mb-8">
+            <span className={cn("inline-flex items-center space-x-1.5 px-4 py-1.5 text-xs font-bold rounded-full", getCategoryColor(news.category))}>
               {getCategoryIcon(news.category)}
               <span>{news.category}</span>
             </span>
-            <div className="h-1 w-1 bg-gray-300 rounded-full" />
-            <div className="flex items-center space-x-1 text-gray-400 text-xs font-bold uppercase tracking-wider">
+            <div className="flex items-center space-x-2 text-gray-400 text-xs font-bold uppercase tracking-widest">
               <Calendar size={14} />
               <span>{news.date}</span>
             </div>
+            <div className="hidden sm:block h-1 w-1 bg-gray-300 rounded-full" />
+            <div className="flex items-center space-x-2 text-gray-400 text-xs font-bold uppercase tracking-widest">
+              <User size={14} />
+              <span>Oleh: {news.author}</span>
+            </div>
           </div>
           
-          <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-gray-900 leading-[1.15] mb-8">
             {news.title}
           </h1>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between py-4 sm:py-6 border-y border-gray-100 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-8 border-b border-gray-100 gap-6">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-maroon-100 rounded-full flex items-center justify-center text-maroon-600 font-bold">
-                {news.author.charAt(0)}
+              <div className="relative group">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-maroon-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shadow-maroon-600/20">
+                  {news.author.charAt(0)}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-lg flex items-center justify-center border border-gray-100 shadow-sm">
+                  <ShieldCheck size={14} className="text-maroon-600" />
+                </div>
               </div>
               <div>
-                <div className="text-sm font-bold text-gray-900">{news.author}</div>
-                <div className="text-[10px] sm:text-xs text-gray-400">Tim Publikasi DPM</div>
+                <div className="text-base font-bold text-gray-900">{news.author}</div>
+                <div className="text-xs text-gray-500 font-medium tracking-wide">Tim Publikasi DPM HIMA PKO</div>
               </div>
             </div>
-            <button className="p-2.5 sm:p-3 rounded-full bg-gray-50 text-gray-400 hover:bg-maroon-50 hover:text-maroon-600 transition-all self-start sm:self-auto">
-              <Share2 size={18} />
-            </button>
+            
+            <div className="flex items-center space-x-3">
+              <div className="text-right hidden sm:block mr-2">
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Estimasi Baca</div>
+                <div className="text-xs font-bold text-gray-900">{Math.ceil((news.content?.length || 0) / 1000)} Menit</div>
+              </div>
+              <button className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-maroon-50 hover:text-maroon-600 transition-all font-bold text-sm">
+                <Share2 size={18} />
+                <span>Bagikan</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Featured Image Slider */}
-        <div className="relative group mb-12">
+        <div className="relative group mb-14">
           <div
-            className="rounded-[40px] overflow-hidden shadow-2xl shadow-gray-200 aspect-video bg-gray-50 relative"
+            className="rounded-3xl sm:rounded-[48px] overflow-hidden shadow-2xl shadow-maroon-900/5 aspect-video bg-gray-50 relative border border-gray-100"
           >
             <img 
               src={getDirectDriveUrl(allImages[currentImageIndex])} 
               alt={`${news.title} - ${currentImageIndex + 1}`} 
-              className="w-full h-full object-contain transition-all duration-500 relative z-10"
+              className="w-full h-full object-cover sm:object-contain relative z-10"
               referrerPolicy="no-referrer"
             />
           </div>
@@ -189,22 +204,35 @@ export default function NewsDetail() {
 
         {/* Content */}
         <div
-          className="prose prose-lg prose-maroon max-w-none text-gray-700 leading-relaxed"
+          className="prose prose-lg prose-maroon max-w-none text-gray-800 leading-[1.8] whitespace-pre-wrap sm:whitespace-normal"
         >
           <div className="markdown-body">
             <ReactMarkdown>{news.content}</ReactMarkdown>
           </div>
         </div>
 
-        {/* Tags */}
-        <div className="mt-16 pt-8 border-t border-gray-100">
+        {/* Tags and Footer */}
+        <div className="mt-16 pt-10 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-8">
           <div className="flex items-center space-x-3">
-            <Tag size={18} className="text-gray-400" />
+            <div className="p-2 rounded-lg bg-gray-50 text-gray-400">
+              <Tag size={18} />
+            </div>
             <div className="flex flex-wrap gap-2">
-              {["DPM", "PKO", "HIMA", "Kegiatan", "Mahasiswa"].map(tag => (
-                <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-500 text-xs font-bold rounded-lg hover:bg-maroon-50 hover:text-maroon-600 transition-colors cursor-pointer">
-                  #{tag}
+              {["DPM HIMA PKO", news.category, "HIMA PKO UPI"].map(tag => (
+                <span key={tag} className="px-3 py-1.5 bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-wider rounded-lg hover:bg-maroon-600 hover:text-white transition-all cursor-pointer">
+                  {tag}
                 </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Share:</span>
+            <div className="flex items-center space-x-2">
+              {['WhatsApp', 'Twitter', 'Facebook'].map(platform => (
+                <button key={platform} className="w-9 h-9 rounded-xl bg-gray-50 text-gray-400 hover:bg-maroon-50 hover:text-maroon-600 transition-all flex items-center justify-center">
+                  <Share2 size={16} />
+                </button>
               ))}
             </div>
           </div>

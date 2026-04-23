@@ -1,40 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import { Link } from "react-router-dom";
-import { Trophy, Users, Newspaper, MessageSquare, ArrowRight, ShieldCheck, Star, Calendar, User, ChevronRight, Activity, Globe, Zap } from "lucide-react";
+import { Trophy, ArrowRight, Star } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { db, collection, query, orderBy, limit, onSnapshot, OperationType, handleFirestoreError, where } from "../firebase";
 
-const features = [
-  {
-    title: "Profil Organisasi",
-    description: "Kenali lebih dekat sejarah, visi, dan misi DPM HIMA PKO.",
-    icon: ShieldCheck,
-    color: "bg-maroon-500",
-    link: "/profil"
-  },
-  {
-    title: "Struktur Anggota",
-    description: "Daftar pengurus dan AKD periode aktif saat ini.",
-    icon: Users,
-    color: "bg-emerald-500",
-    link: "/anggota"
-  },
-  {
-    title: "Berita & Kegiatan",
-    description: "Update terbaru seputar program kerja dan prestasi mahasiswa.",
-    icon: Newspaper,
-    color: "bg-amber-500",
-    link: "/berita"
-  },
-  {
-    title: "Layanan Aspirasi",
-    description: "Sampaikan aspirasi dan keluhan Anda untuk PKO yang lebih baik.",
-    icon: MessageSquare,
-    color: "bg-purple-500",
-    link: "/aspirasi"
-  }
-];
 
 export default function Home() {
   const [latestNews, setLatestNews] = useState<any[]>([]);
@@ -133,15 +103,6 @@ export default function Home() {
           style={{ opacity, scale }}
           className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-900 py-20"
         >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-maroon-50 border border-maroon-100 text-maroon-600 text-sm font-bold mb-8"
-          >
-            <Trophy size={16} />
-            <span>Official Website DPM HIMA PKO UPI</span>
-          </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -185,60 +146,62 @@ export default function Home() {
           </motion.div>
         </motion.div>
 
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 1 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-400 animate-bounce"
-        >
-          <div className="w-6 h-10 border-2 border-gray-200 rounded-full flex justify-center pt-2">
-            <div className="w-1 h-2 bg-gray-400 rounded-full" />
-          </div>
-        </motion.div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-24 bg-white overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-10 sm:mb-16"
-          >
-            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-6 leading-tight">
-              Layanan & Informasi
-            </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-xs sm:text-base leading-relaxed px-4">
-              Akses cepat ke berbagai layanan dan informasi penting seputar DPM HIMA PKO.
-            </p>
-          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: index * 0.1, duration: 0.6, ease: "easeOut" }}
-                whileHover={{ y: -12, scale: 1.02 }}
-                className="group p-8 rounded-3xl bg-gray-50 hover:bg-white hover:shadow-2xl hover:shadow-maroon-500/10 transition-all border border-transparent hover:border-maroon-100"
+
+      {/* Latest News Preview */}
+      <section className="py-16 sm:py-24 bg-gray-50 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div 
+            className="flex flex-col md:flex-row justify-between items-end mb-10 sm:mb-12"
+          >
+            <div className="mb-6 md:mb-0 text-center md:text-left w-full md:w-auto">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Berita Terbaru</h2>
+              <p className="text-gray-600 text-sm sm:text-base">Ikuti perkembangan terbaru kegiatan dan program kerja kami.</p>
+            </div>
+            <Link to="/berita" className="text-maroon-600 font-bold flex items-center hover:underline text-sm sm:text-base mx-auto md:mx-0">
+              Lihat Semua Berita <ArrowRight size={18} className="ml-2" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {latestNews.map((news) => (
+              <div
+                key={news.id}
+                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100"
               >
-                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center text-white mb-6 transition-transform group-hover:scale-110 group-hover:rotate-3", feature.color)}>
-                  <feature.icon size={28} />
+                <div className="h-56 bg-gray-200 relative">
+                  <img 
+                    src={news.imageUrl} 
+                    alt={news.title} 
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 bg-maroon-600 text-white text-xs font-bold rounded-full">
+                      {news.category}
+                    </span>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed mb-6">
-                  {feature.description}
-                </p>
-                <Link to={feature.link} className="inline-flex items-center text-maroon-600 font-bold text-sm hover:underline">
-                  <span>Selengkapnya</span>
-                  <ArrowRight size={16} className="ml-2" />
-                </Link>
-              </motion.div>
+                <div className="p-6">
+                  <div className="text-gray-400 text-xs font-medium mb-2">{news.date}</div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
+                    {news.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm line-clamp-3 mb-6">
+                    {news.content}
+                  </p>
+                  <Link to={`/berita/${news.id}`} className="text-maroon-600 font-bold text-sm flex items-center group">
+                    Baca Selengkapnya 
+                    <ArrowRight size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </div>
+              </div>
             ))}
+            {latestNews.length === 0 && (
+              <div className="col-span-full py-20 text-center text-gray-400 text-sm">Belum ada berita terbaru.</div>
+            )}
           </div>
         </div>
       </section>
@@ -342,62 +305,6 @@ export default function Home() {
                 <p className="text-maroon-200 text-[10px] sm:text-sm">Dedikasi tinggi dalam setiap program kerja.</p>
               </motion.div>
             </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Latest News Preview */}
-      <section className="py-16 sm:py-24 bg-gray-50 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div 
-            className="flex flex-col md:flex-row justify-between items-end mb-10 sm:mb-12"
-          >
-            <div className="mb-6 md:mb-0 text-center md:text-left w-full md:w-auto">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Berita Terbaru</h2>
-              <p className="text-gray-600 text-sm sm:text-base">Ikuti perkembangan terbaru kegiatan dan program kerja kami.</p>
-            </div>
-            <Link to="/berita" className="text-maroon-600 font-bold flex items-center hover:underline text-sm sm:text-base mx-auto md:mx-0">
-              Lihat Semua Berita <ArrowRight size={18} className="ml-2" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {latestNews.map((news) => (
-              <div
-                key={news.id}
-                className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-gray-100"
-              >
-                <div className="h-56 bg-gray-200 relative">
-                  <img 
-                    src={news.imageUrl} 
-                    alt={news.title} 
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 bg-maroon-600 text-white text-xs font-bold rounded-full">
-                      {news.category}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <div className="text-gray-400 text-xs font-medium mb-2">{news.date}</div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
-                    {news.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm line-clamp-3 mb-6">
-                    {news.content}
-                  </p>
-                  <Link to={`/berita/${news.id}`} className="text-maroon-600 font-bold text-sm flex items-center group">
-                    Baca Selengkapnya 
-                    <ArrowRight size={16} className="ml-2 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-            {latestNews.length === 0 && (
-              <div className="col-span-full py-20 text-center text-gray-400 text-sm">Belum ada berita terbaru.</div>
-            )}
           </div>
         </div>
       </section>
