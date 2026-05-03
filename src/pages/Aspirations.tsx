@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { cn } from "@/src/lib/utils";
+import { toast } from "react-hot-toast";
 import { db, collection, addDoc, OperationType, handleFirestoreError } from "../firebase";
 
 const aspirationSchema = z.object({
@@ -54,15 +55,21 @@ export default function Aspirations() {
     setIsLoading(true);
     try {
       const finalData = {
-        ...data,
-        name: data.isAnonymous ? "Anonim" : data.name,
+        name: data.isAnonymous ? "Anonim" : (data.name || "Anonim"),
+        email: data.email || "",
+        category: data.category,
+        message: data.message,
+        isAnonymous: data.isAnonymous,
         date: new Date(),
         status: "pending"
       };
       await addDoc(collection(db, "aspirations"), finalData);
       setIsSubmitted(true);
+      toast.success("Aspirasi berhasil dikirim!");
       reset();
     } catch (error) {
+      console.error("Submission error:", error);
+      toast.error("Gagal mengirim aspirasi. Silakan coba lagi.");
       handleFirestoreError(error, OperationType.CREATE, "aspirations");
     } finally {
       setIsLoading(false);
