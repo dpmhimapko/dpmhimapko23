@@ -265,7 +265,7 @@ export default function Profile() {
                 <div className="w-16 h-16 sm:w-20 h-20 bg-white text-maroon-600 rounded-2xl sm:rounded-[28px] flex items-center justify-center mb-6 sm:mb-8 group-hover:bg-maroon-600 group-hover:text-white transition-all duration-500 shadow-sm border border-gray-100">
                   <akd.icon size={28} className="sm:w-9 sm:h-9" />
                 </div>
-                <h3 className="text-xl sm:text-2xl font-black text-gray-900 mb-3 sm:mb-4 uppercase tracking-wider">{akd.name}</h3>
+                <h3 className="text-2xl sm:text-4xl font-black text-gray-900 mb-3 sm:mb-4 uppercase tracking-tight">{akd.name}</h3>
                 <p className="text-gray-600 text-sm sm:text-base leading-relaxed font-bold">
                   {akd.desc}
                 </p>

@@ -171,8 +171,7 @@ export default function Admin() {
           dataToSave.order = members.length + 1;
         }
       } else if (modalType === 'aspirations') {
-        // Aspirations are usually read-only in admin, but just in case
-        const allowed = ['status', 'category', 'message', 'date'];
+        const allowed = ['status', 'category', 'message', 'date', 'name', 'email', 'isAnonymous'];
         allowed.forEach(field => {
           if (formData[field] !== undefined) dataToSave[field] = formData[field];
         });
@@ -409,7 +408,10 @@ export default function Admin() {
                             <MessageSquare size={16} className="sm:w-5 sm:h-5" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-1 truncate">{asp.category}</h4>
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="font-bold text-gray-900 text-xs sm:text-sm truncate">{asp.category}</h4>
+                              <span className="text-[10px] text-gray-400 font-medium">{asp.name || "Anonim"}</span>
+                            </div>
                             <p className="text-gray-500 text-[10px] sm:text-xs line-clamp-1 mb-2">{asp.message}</p>
                             <div className="flex items-center space-x-2 sm:space-x-3 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">
                               <span className={cn(
@@ -619,6 +621,7 @@ export default function Admin() {
                     <table className="w-full text-left">
                       <thead>
                         <tr className="bg-gray-50/50 border-b border-gray-100">
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Pengirim</th>
                           <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Kategori</th>
                           <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Pesan</th>
                           <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Tanggal</th>
@@ -630,11 +633,14 @@ export default function Admin() {
                         {aspirations.map((item) => (
                           <tr key={item.id} className="hover:bg-gray-50/50 transition-colors">
                             <td className="px-8 py-6">
+                              <span className="font-bold text-gray-900 text-sm">{item.name || "Anonim"}</span>
+                            </td>
+                            <td className="px-8 py-6">
                               <div className="flex items-center space-x-3">
                                 <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
                                   <MessageSquare size={16} />
                                 </div>
-                                <span className="font-bold text-gray-900 text-sm">{item.category}</span>
+                                <span className="font-bold text-gray-700 text-sm">{item.category}</span>
                               </div>
                             </td>
                             <td className="px-8 py-6">
@@ -671,11 +677,11 @@ export default function Admin() {
                     {aspirations.map((item) => (
                       <div key={item.id} className="p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">
-                              <MessageSquare size={16} />
+                          <div className="flex flex-col">
+                            <span className="text-gray-900 font-black text-sm">{item.name || "Anonim"}</span>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase truncate">{item.category}</span>
                             </div>
-                            <span className="font-bold text-gray-900 text-sm">{item.category}</span>
                           </div>
                           <span className={cn(
                             "px-2 py-0.5 text-[9px] font-bold rounded-full uppercase tracking-wider",
@@ -1362,9 +1368,19 @@ export default function Admin() {
 
                 {modalType === 'aspirations' && (
                   <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Nama Pengirim</div>
+                        <p className="text-gray-900 text-sm font-bold">{formData.name || "Anonim"}</p>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-1">Email</div>
+                        <p className="text-gray-900 text-sm font-bold truncate">{formData.email || "-"}</p>
+                      </div>
+                    </div>
                     <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
                       <div className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Pesan Aspirasi</div>
-                      <p className="text-gray-900 text-sm leading-relaxed">{formData.message}</p>
+                      <p className="text-gray-900 text-sm leading-relaxed whitespace-pre-wrap">{formData.message}</p>
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Status Tanggapan</label>

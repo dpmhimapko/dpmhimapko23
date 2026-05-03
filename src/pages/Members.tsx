@@ -217,7 +217,7 @@ export default function Members() {
                           <span>Profil AKD</span>
                         </div>
                         
-                        <h2 className="text-3xl sm:text-6xl font-black text-gray-900 mb-6 sm:mb-8 leading-tight lowercase first-letter:uppercase">
+                        <h2 className="text-4xl sm:text-8xl font-black text-gray-900 mb-6 sm:mb-8 leading-tight uppercase tracking-tight">
                           {selectedAkd === "BPH" ? "Badan Pengurus Harian" : selectedAkd}
                         </h2>
                         
