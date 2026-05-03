@@ -1054,7 +1054,6 @@ export default function Admin() {
                           className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
                         >
                           <option value="">Pilih Kategori</option>
-                          <option value="Proker">Proker</option>
                           <option value="Reward">Reward</option>
                           <option value="Pengumuman">Pengumuman</option>
                           <option value="Lainnya">Lainnya</option>

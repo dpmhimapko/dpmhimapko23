@@ -20,7 +20,7 @@ service cloud.firestore {
     // Fields:
     //   - title: string (required, < 200 chars)
     //   - content: string (required, < 10000 chars)
-    //   - category: string (required, ['Proker', 'Reward', 'Pengumuman', 'Lainnya'])
+    //   - category: string (required, ['Reward', 'Pengumuman', 'Lainnya'])
     //   - date: timestamp (required)
     //   - imageUrl: string (required, valid URL)
     //   - images: list (optional, list of valid URLs)
@@ -108,7 +108,7 @@ service cloud.firestore {
       return hasOnlyAllowedFields(['title', 'content', 'category', 'date', 'imageUrl', 'images', 'author', 'authorUid']) &&
              data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
              data.content is string && data.content.size() > 0 && data.content.size() < 10000 &&
-             data.category in ['Proker', 'Reward', 'Pengumuman', 'Lainnya'] &&
+             data.category in ['Reward', 'Pengumuman', 'Lainnya'] &&
              data.date is timestamp &&
              isValidUrl(data.imageUrl) &&
              (!('images' in data) || data.images is list) &&

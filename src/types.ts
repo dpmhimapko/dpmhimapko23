@@ -18,7 +18,7 @@ export interface News {
   id: string;
   title: string;
   content: string;
-  category: "Proker" | "Reward" | "Pengumuman" | "Lainnya";
+  category: "Reward" | "Pengumuman" | "Lainnya";
   date: string;
   imageUrl: string;
   author: string;

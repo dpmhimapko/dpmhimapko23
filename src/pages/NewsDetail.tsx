@@ -54,7 +54,6 @@ export default function NewsDetail() {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case "Proker": return <Trophy size={14} />;
       case "Reward": return <Star size={14} />;
       case "Pengumuman": return <Megaphone size={14} />;
       default: return <Newspaper size={14} />;
@@ -63,7 +62,6 @@ export default function NewsDetail() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case "Proker": return "bg-maroon-100 text-maroon-600";
       case "Reward": return "bg-amber-100 text-amber-600";
       case "Pengumuman": return "bg-emerald-100 text-emerald-600";
       default: return "bg-gray-100 text-gray-600";

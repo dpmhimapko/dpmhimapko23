@@ -8,10 +8,19 @@ import { cn } from "@/src/lib/utils";
 import { db, collection, addDoc, OperationType, handleFirestoreError } from "../firebase";
 
 const aspirationSchema = z.object({
+  isAnonymous: z.boolean(),
   name: z.string().optional(),
   email: z.string().email("Email tidak valid").optional().or(z.literal("")),
   category: z.enum(["Akademik", "Fasilitas", "Organisasi", "Lainnya"]),
   message: z.string().min(10, "Pesan minimal 10 karakter").max(1000, "Pesan maksimal 1000 karakter"),
+}).refine((data) => {
+  if (!data.isAnonymous && (!data.name || data.name.trim() === "")) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Nama wajib diisi jika tidak anonim",
+  path: ["name"],
 });
 
 type AspirationFormValues = z.infer<typeof aspirationSchema>;
@@ -26,23 +35,31 @@ export default function Aspirations() {
     reset,
     watch,
     formState: { errors },
+    setValue,
   } = useForm<AspirationFormValues>({
     resolver: zodResolver(aspirationSchema),
     defaultValues: {
+      isAnonymous: false,
       category: "Akademik",
+      name: "",
+      email: "",
+      message: "",
     }
   });
 
   const selectedCategory = watch("category");
+  const isAnonymous = watch("isAnonymous");
 
   const onSubmit = async (data: AspirationFormValues) => {
     setIsLoading(true);
     try {
-      await addDoc(collection(db, "aspirations"), {
+      const finalData = {
         ...data,
+        name: data.isAnonymous ? "Anonim" : data.name,
         date: new Date(),
         status: "pending"
-      });
+      };
+      await addDoc(collection(db, "aspirations"), finalData);
       setIsSubmitted(true);
       reset();
     } catch (error) {
@@ -86,27 +103,6 @@ export default function Aspirations() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className="bg-maroon-600 rounded-[32px] p-8 text-white shadow-2xl shadow-maroon-600/20 relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-                <div className="relative z-10">
-                  <ShieldCheck size={32} className="mb-6 text-maroon-200" />
-                  <h3 className="text-xl font-bold mb-4">Privasi Terjamin</h3>
-                  <p className="text-maroon-100 text-sm leading-relaxed mb-6">
-                    Anda dapat menyampaikan aspirasi secara anonim. Identitas Anda hanya akan digunakan untuk keperluan tindak lanjut jika Anda mencantumkannya.
-                  </p>
-                  <div className="flex items-center space-x-2 text-xs font-bold text-maroon-200">
-                    <CheckCircle2 size={14} />
-                    <span>Enkripsi Data Aman</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, x: -30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 }}
                 className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm"
               >
                 <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center space-x-2">
@@ -167,31 +163,68 @@ export default function Aspirations() {
                       </div>
 
                       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-700 ml-1">Nama (Opsional)</label>
-                            <input
-                              {...register("name")}
-                              placeholder="Masukkan nama Anda"
-                              className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-700 ml-1">Email (Opsional)</label>
-                            <input
-                              {...register("email")}
-                              placeholder="email@contoh.com"
-                              className={cn(
-                                "w-full px-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all",
-                                errors.email ? "border-red-300 bg-red-50" : "border-gray-100"
+                        <div className="space-y-4">
+                          <label className="flex items-center space-x-3 cursor-pointer group mb-2">
+                            <div className="relative">
+                              <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={isAnonymous}
+                                onChange={(e) => {
+                                  setValue("isAnonymous", e.target.checked);
+                                  if (e.target.checked) setValue("name", "");
+                                }}
+                              />
+                              <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-maroon-600"></div>
+                            </div>
+                            <span className="text-sm font-bold text-gray-700 select-none">Kirim sebagai Anonim</span>
+                          </label>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <AnimatePresence mode="wait">
+                              {!isAnonymous && (
+                                <motion.div 
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  className="space-y-2 overflow-hidden"
+                                >
+                                  <label className="text-sm font-bold text-gray-700 ml-1">Nama Lengkap</label>
+                                  <input
+                                    {...register("name")}
+                                    placeholder="Masukkan nama Anda"
+                                    className={cn(
+                                      "w-full px-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all",
+                                      errors.name ? "border-red-300 bg-red-50" : "border-gray-100"
+                                    )}
+                                  />
+                                  {errors.name && (
+                                    <p className="text-red-500 text-xs font-bold flex items-center mt-1 ml-1">
+                                      <AlertCircle size={12} className="mr-1" />
+                                      {errors.name.message}
+                                    </p>
+                                  )}
+                                </motion.div>
                               )}
-                            />
-                            {errors.email && (
-                              <p className="text-red-500 text-xs font-bold flex items-center mt-1 ml-1">
-                                <AlertCircle size={12} className="mr-1" />
-                                {errors.email.message}
-                              </p>
-                            )}
+                            </AnimatePresence>
+                            
+                            <div className="space-y-2">
+                              <label className="text-sm font-bold text-gray-700 ml-1">Email (Opsional)</label>
+                              <input
+                                {...register("email")}
+                                placeholder="email@contoh.com"
+                                className={cn(
+                                  "w-full px-6 py-4 bg-gray-50 border rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all",
+                                  errors.email ? "border-red-300 bg-red-50" : "border-gray-100"
+                                )}
+                              />
+                              {errors.email && (
+                                <p className="text-red-500 text-xs font-bold flex items-center mt-1 ml-1">
+                                  <AlertCircle size={12} className="mr-1" />
+                                  {errors.email.message}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
 

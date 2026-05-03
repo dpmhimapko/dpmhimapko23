@@ -20,7 +20,7 @@
       "properties": {
         "title": { "type": "string" },
         "content": { "type": "string" },
-        "category": { "type": "string", "enum": ["Proker", "Reward", "Pengumuman", "Lainnya"] },
+        "category": { "type": "string", "enum": ["Reward", "Pengumuman", "Lainnya"] },
         "date": { "type": "string", "format": "date-time" },
         "imageUrl": { "type": "string" },
         "author": { "type": "string" },

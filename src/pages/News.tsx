@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
 import { db, collection, query, orderBy, onSnapshot, OperationType, handleFirestoreError } from "../firebase";
 
-const categories = ["Semua", "Proker", "Reward", "Pengumuman", "Lainnya"];
+const categories = ["Semua", "Reward", "Pengumuman", "Lainnya"];
 
 export default function News() {
   const [selectedCategory, setSelectedCategory] = useState("Semua");
@@ -51,7 +51,6 @@ export default function News() {
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case "Proker": return <Trophy size={14} />;
       case "Reward": return <Star size={14} />;
       case "Pengumuman": return <Megaphone size={14} />;
       default: return <Newspaper size={14} />;
@@ -60,7 +59,6 @@ export default function News() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case "Proker": return "bg-maroon-100 text-maroon-600";
       case "Reward": return "bg-amber-100 text-amber-600";
       case "Pengumuman": return "bg-emerald-100 text-emerald-600";
       default: return "bg-gray-100 text-gray-600";
@@ -84,7 +82,7 @@ export default function News() {
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">Berita & Kegiatan UPI</h1>
               <p className="text-gray-600 max-w-2xl text-sm sm:text-base">
-                Update terbaru seputar program kerja, pengumuman penting, dan apresiasi prestasi mahasiswa PKO Universitas Pendidikan Indonesia.
+                Update terbaru seputar pengumuman penting, berita kegiatan, dan apresiasi prestasi mahasiswa PKO Universitas Pendidikan Indonesia.
               </p>
             </motion.div>
           </div>

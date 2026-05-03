@@ -78,7 +78,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen relative bg-[#fcfcfc]">
       {/* Global Geometric SVG Background (Continuous Shards) */}
-      <div className="fixed inset-0 z-0 pointer-events-none select-none overflow-hidden opacity-90">
+      <div className="absolute inset-0 z-0 pointer-events-none select-none overflow-hidden opacity-90">
         <svg
           width="100%"
           height="100%"
@@ -110,11 +110,12 @@ export default function Home() {
             <line x1="600" y1="1000" x2="1000" y2="1000" />
           </g>
         </svg>
+        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#fcfcfc] to-transparent" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,#ffffff_95%)] opacity-30" />
       </div>
 
       {/* Hero Section */}
-      <section ref={heroRef} className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden z-10">
+      <section ref={heroRef} className="relative min-h-[85dvh] pt-32 pb-16 flex items-center justify-center overflow-hidden z-10">
 
         {/* Decorative Floating Elements */}
         <motion.div 
