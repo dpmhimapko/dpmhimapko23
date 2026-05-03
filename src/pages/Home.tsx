@@ -76,9 +76,46 @@ export default function Home() {
     };
   }, []);
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen relative bg-[#fcfcfc]">
+      {/* Global Geometric SVG Background (Continuous Shards) */}
+      <div className="fixed inset-0 z-0 pointer-events-none select-none overflow-hidden opacity-90">
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 1000 1000"
+          preserveAspectRatio="xMidYMid slice"
+          className="w-full h-full pointer-events-none"
+        >
+          <rect width="1000" height="1000" fill="#fcfcfc" />
+          
+          {/* Geometric shards with distinct gray levels */}
+          <polygon points="0,0 500,0 0,600" fill="#f5f5f5" />
+          <polygon points="500,0 1000,0 1000,250 800,100" fill="#f0f0f0" />
+          <polygon points="1000,250 1000,800 650,500" fill="#ececec" />
+          <polygon points="0,600 600,1000 0,1000" fill="#f2f2f2" />
+          <polygon points="600,1000 1000,1000 1000,800" fill="#ededed" />
+          
+          {/* Overlapping shards to create depth and continuity */}
+          <polygon points="200,300 700,200 450,600" fill="#f9f9f9" opacity="0.6" />
+          <polygon points="700,200 1000,500 750,700" fill="#f4f4f4" opacity="0.7" />
+          <polygon points="300,700 800,900 500,1000 150,950" fill="#eeeeee" opacity="0.5" />
+          
+          {/* Accent border lines for "cracked" paper look */}
+          <g stroke="#000000" strokeWidth="0.3" opacity="0.04">
+            <line x1="0" y1="0" x2="500" y2="0" />
+            <line x1="500" y1="0" x2="1000" y2="250" />
+            <line x1="1000" y1="250" x2="650" y2="500" />
+            <line x1="650" y1="500" x2="0" y2="600" />
+            <line x1="0" y1="600" x2="600" y2="1000" />
+            <line x1="600" y1="1000" x2="1000" y2="1000" />
+          </g>
+        </svg>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,#ffffff_95%)] opacity-30" />
+      </div>
+
       {/* Hero Section */}
-      <section ref={heroRef} className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden bg-white">
+      <section ref={heroRef} className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden z-10">
+
         {/* Decorative Floating Elements */}
         <motion.div 
           style={{ y: y1 }}
@@ -151,8 +188,8 @@ export default function Home() {
 
 
       {/* Latest News Preview */}
-      <section className="py-16 sm:py-24 bg-gray-50 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-16 sm:py-24 overflow-hidden relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div 
             className="flex flex-col md:flex-row justify-between items-end mb-10 sm:mb-12"
           >
@@ -207,7 +244,7 @@ export default function Home() {
       </section>
 
       {/* Reward Highlight */}
-      <section className="py-16 sm:py-24 bg-maroon-600 relative overflow-hidden">
+      <section className="py-16 sm:py-24 bg-maroon-600 relative overflow-hidden z-10">
         <motion.div 
           initial={{ opacity: 0, scale: 1.2 }}
           whileInView={{ opacity: 1, scale: 1 }}

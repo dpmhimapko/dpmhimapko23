@@ -69,15 +69,15 @@ export default function Footer() {
             <ul className="space-y-4">
               <li className="flex items-start space-x-3">
                 <MapPin className="text-maroon-500 mt-1 shrink-0" size={20} />
-                <span className="text-sm">Gedung Ormawa, Kampus Pusat Universitas Pendidikan Indonesia, Indonesia</span>
+                <span className="text-sm">Jl. Khp Hasan Mustopa No.202, Padasuka, Kec. Cibeunying Kidul, Kota Bandung, Jawa Barat 40125</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Phone className="text-maroon-500 shrink-0" size={20} />
-                <span className="text-sm">+62 812 3456 7890</span>
+                <span className="text-sm">0895333810600</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="text-maroon-500 shrink-0" size={20} />
-                <span className="text-sm">dpmhimapko@university.ac.id</span>
+                <span className="text-sm">dewanperwakilanpko.com</span>
               </li>
             </ul>
           </div>
