@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Newspaper, Image as ImageIcon, 
   MessageSquare, Settings, LogOut, Plus, Edit2, Trash2, 
   Search, Filter, ChevronRight, CheckCircle2, AlertCircle,
-  ShieldCheck, Trophy, Star, Megaphone
+  ShieldCheck, Trophy, Star, Megaphone, FileSpreadsheet
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
@@ -32,6 +32,11 @@ export default function Admin() {
   const [divisions, setDivisions] = useState<any[]>([]);
   const [filterDivision, setFilterDivision] = useState("Semua");
   
+  // User Management States
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [searchUserQuery, setSearchUserQuery] = useState("");
+  const [filterUserRole, setFilterUserRole] = useState("Semua");
+  
   // Modal & Form States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"news" | "members" | "gallery" | "aspirations" | "divisions" | null>(null);
@@ -41,6 +46,16 @@ export default function Admin() {
 
   const navigate = useNavigate();
   const { user, role, loading: authLoading } = useAuth();
+  
+  const isMainAdmin = user?.email === "aahdan298@gmail.com";
+  
+  const availableTabs = isMainAdmin
+    ? [
+        ...tabs.slice(0, 6),
+        { id: "user_management", name: "Persetujuan Admin", icon: ShieldCheck },
+        ...tabs.slice(6)
+      ]
+    : tabs;
 
   const getDirectDriveUrl = (url: string) => {
     if (!url) return "";
@@ -97,14 +112,37 @@ export default function Admin() {
       handleFirestoreError(error, OperationType.LIST, "divisions");
     });
 
+    let unsubUsers = () => {};
+    if (isMainAdmin) {
+      unsubUsers = onSnapshot(query(collection(db, "users"), orderBy("createdAt", "desc")), (snap) => {
+        setUsersList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }, (error) => {
+        handleFirestoreError(error, OperationType.LIST, "users");
+      });
+    }
+
     return () => {
       unsubNews();
       unsubAspirations();
       unsubMembers();
       unsubGallery();
       unsubDivisions();
+      if (isMainAdmin) unsubUsers();
     };
-  }, [role]);
+  }, [role, isMainAdmin]);
+
+  const handleUpdateUserRole = async (targetUserId: string, newRole: string) => {
+    try {
+      await updateDoc(doc(db, "users", targetUserId), {
+        role: newRole
+      });
+      toast.success("Peran pengguna berhasil diperbarui!");
+    } catch (error) {
+      console.error("Gagal memperbarui peran pengguna:", error);
+      toast.error("Gagal memperbarui peran pengguna");
+      handleFirestoreError(error, OperationType.UPDATE, `users/${targetUserId}`);
+    }
+  };
 
   const handleOpenModal = (type: any, item: any = null) => {
     setModalType(type);
@@ -233,6 +271,74 @@ export default function Admin() {
     }
   };
 
+  const handleExportToExcel = () => {
+    if (aspirations.length === 0) {
+      toast.error("Tidak ada data aspirasi untuk diekspor");
+      return;
+    }
+
+    const headers = ["No", "Tanggal", "Nama Pengirim", "Email", "Kategori", "Pesan", "Status Tanggapan", "Anonim?"];
+
+    const rows = aspirations.map((item, idx) => {
+      let formattedDate = "";
+      if (item.date) {
+        try {
+          const d = item.date.toDate ? item.date.toDate() : new Date(item.date);
+          formattedDate = d.toLocaleString("id-ID", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        } catch (err) {
+          formattedDate = String(item.date);
+        }
+      }
+
+      const escape = (val: any) => {
+        if (val === null || val === undefined) return "";
+        let s = String(val);
+        s = s.replace(/"/g, '""');
+        return `"${s}"`;
+      };
+
+      let statusMsg = "Menunggu";
+      if (item.status === "reviewed") statusMsg = "Ditinjau";
+      if (item.status === "responded") statusMsg = "Ditanggapi";
+
+      return [
+        idx + 1,
+        escape(formattedDate),
+        escape(item.name || "Anonim"),
+        escape(item.email || "-"),
+        escape(item.category || "-"),
+        escape(item.message || "-"),
+        escape(statusMsg),
+        escape(item.isAnonymous ? "Ya" : "Tidak")
+      ];
+    });
+
+    const csvContent = [
+      "sep=;",
+      headers.join(";"),
+      ...rows.map(row => row.join(";"))
+    ].join("\r\n");
+
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Data_Aspirasi_DPM_PKO_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Aspirasi berhasil diekspor ke Excel!");
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -295,7 +401,7 @@ export default function Admin() {
         </div>
 
         <nav className="flex-grow px-4 py-6 space-y-2">
-          {tabs.map((tab) => {
+          {availableTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -373,6 +479,27 @@ export default function Admin() {
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-8"
               >
+                {/* Pending Admin Requests Alert Banner for Main Admin */}
+                {isMainAdmin && usersList.some(u => u.role === 'pending_admin') && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-[32px] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm animate-bounce">
+                        <ShieldCheck size={24} />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-gray-900 text-sm">Permintaan Akses Admin Baru!</h4>
+                        <p className="text-gray-500 text-xs mt-0.5">Ada {usersList.filter(u => u.role === 'pending_admin').length} pengajuan akses dari anggota tim Anda yang membutuhkan persetujuan.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("user_management")}
+                      className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm active:scale-95 whitespace-nowrap cursor-pointer"
+                    >
+                      Buka Persetujuan
+                    </button>
+                  </div>
+                )}
+
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   {[
@@ -613,6 +740,13 @@ export default function Admin() {
                     <h2 className="text-2xl font-black text-gray-900 mb-2">Manajemen Aspirasi</h2>
                     <p className="text-gray-500 text-sm">Kelola dan tanggapi aspirasi dari mahasiswa PKO.</p>
                   </div>
+                  <button
+                    onClick={handleExportToExcel}
+                    className="flex items-center justify-center space-x-2 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm active:scale-95 transition-all w-full md:w-auto self-start md:self-auto cursor-pointer"
+                  >
+                    <FileSpreadsheet size={18} />
+                    <span>Ekspor ke Excel</span>
+                  </button>
                 </div>
 
                 <div className="bg-white rounded-[32px] sm:rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
@@ -990,8 +1124,224 @@ export default function Admin() {
               </motion.div>
             )}
 
-            {/* Other tabs would be implemented similarly */}
-            {activeTab !== "dashboard" && activeTab !== "news" && activeTab !== "aspirations" && activeTab !== "members" && activeTab !== "gallery" && (
+            {/* User Management Tab */}
+            {activeTab === "user_management" && isMainAdmin && (
+              <motion.div
+                key="user_management"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-8"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Persetujuan & Kelola Admin</h2>
+                    <p className="text-gray-500 text-sm">Setujui anggota tim yang mengajukan hak akses admin atau kelola peran pengguna.</p>
+                  </div>
+                  
+                  {/* Stats Summary Panel */}
+                  <div className="flex space-x-4">
+                    <div className="bg-amber-50 border border-amber-100 rounded-2xl px-5 py-3 flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
+                        {usersList.filter(u => u.role === 'pending_admin').length}
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase font-black text-amber-500 tracking-wider">Menunggu ACC</div>
+                        <div className="text-sm font-black text-gray-900">Permintaan</div>
+                      </div>
+                    </div>
+                    <div className="bg-maroon-50 border border-maroon-100 rounded-2xl px-5 py-3 flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-maroon-600 rounded-xl flex items-center justify-center text-white font-bold shrink-0">
+                        {usersList.filter(u => u.role === 'admin').length}
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase font-black text-maroon-600 tracking-wider">Total Admin</div>
+                        <div className="text-sm font-black text-gray-900">Pengelola</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filter and Search Bar */}
+                <div className="bg-white p-6 rounded-[32px] sm:rounded-[40px] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                  <div className="relative w-full md:max-w-md">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Cari berdasarkan nama atau email..."
+                      value={searchUserQuery}
+                      onChange={(e) => setSearchUserQuery(e.target.value)}
+                      className="w-full pl-12 pr-6 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-maroon-600 outline-none transition-all text-sm font-medium"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 shrink-0">
+                    {["Semua", "Menunggu Persetujuan", "Admin", "Anggota Biasa"].map((roleFilter) => (
+                      <button
+                        key={roleFilter}
+                        onClick={() => setFilterUserRole(roleFilter)}
+                        className={cn(
+                          "px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer",
+                          filterUserRole === roleFilter
+                            ? "bg-maroon-600 text-white shadow-sm"
+                            : "bg-gray-50 text-gray-500 border border-gray-100 hover:bg-gray-100"
+                        )}
+                      >
+                        {roleFilter}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* List Table of Users */}
+                <div className="bg-white rounded-[32px] sm:rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="bg-gray-50/50 border-b border-gray-100">
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Nama & Email</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Tanggal Terdaftar</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider">Peran Saat Ini</th>
+                          <th className="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">Aksi & Otorisasi</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {usersList
+                          .filter(u => {
+                            const matchSearch = (u.name || "").toLowerCase().includes(searchUserQuery.toLowerCase()) || 
+                                                (u.email || "").toLowerCase().includes(searchUserQuery.toLowerCase());
+                            if (!matchSearch) return false;
+
+                            if (filterUserRole === "Menunggu Persetujuan") return u.role === "pending_admin";
+                            if (filterUserRole === "Admin") return u.role === "admin";
+                            if (filterUserRole === "Anggota Biasa") return u.role === "user";
+                            return true;
+                          })
+                          .map((u) => {
+                            const isSelf = u.id === user?.uid;
+                            const isCurrentMainAdmin = u.email === "aahdan298@gmail.com";
+                            
+                            return (
+                              <tr key={u.id} className={cn("hover:bg-gray-50/50 transition-colors", u.role === 'pending_admin' && "bg-amber-50/20")}>
+                                <td className="px-8 py-6">
+                                  <div className="flex items-center space-x-4">
+                                    <div className="w-10 h-10 bg-maroon-50 rounded-full flex items-center justify-center text-maroon-600 font-bold shrink-0 border border-maroon-100 uppercase">
+                                      {u.name ? u.name.charAt(0) : (u.email ? u.email.charAt(0) : "U")}
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="font-extrabold text-gray-900 text-sm truncate flex items-center gap-2">
+                                        {u.name || "Nama Belum Diisi"}
+                                        {isSelf && <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded">Anda</span>}
+                                        {isCurrentMainAdmin && <span className="px-2 py-0.5 bg-maroon-100 text-maroon-700 text-[10px] font-black rounded">Admin Utama</span>}
+                                      </span>
+                                      <span className="text-gray-500 text-xs truncate font-medium">{u.email}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6 text-gray-500 text-xs font-semibold">
+                                  {u.createdAt && (u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt)).toLocaleDateString("id-ID", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric"
+                                  })}
+                                </td>
+                                <td className="px-8 py-6">
+                                  {u.role === "admin" ? (
+                                    <span className="inline-flex items-center space-x-1.5 px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full border border-green-100">
+                                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                      <span>Admin</span>
+                                    </span>
+                                  ) : u.role === "pending_admin" ? (
+                                    <span className="inline-flex items-center space-x-1.5 px-3 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200 animate-pulse">
+                                      <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                                      <span>Menunggu Persetujuan</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center space-x-1.5 px-3 py-1 bg-gray-50 text-gray-500 text-xs font-bold rounded-full border border-gray-100">
+                                      <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                                      <span>Anggota Biasa</span>
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-8 py-6 text-right">
+                                  {isCurrentMainAdmin ? (
+                                    <span className="text-xs text-gray-400 font-bold italic">Sistem Utama</span>
+                                  ) : (
+                                    <div className="flex items-center justify-end space-x-2">
+                                      {u.role === "pending_admin" && (
+                                        <>
+                                          <button
+                                            onClick={() => handleUpdateUserRole(u.id, "admin")}
+                                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm shadow-green-600/10 active:scale-95 cursor-pointer"
+                                          >
+                                            Setujui Admin
+                                          </button>
+                                          <button
+                                            onClick={() => handleUpdateUserRole(u.id, "user")}
+                                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-xs rounded-xl transition-all active:scale-95 cursor-pointer"
+                                          >
+                                            Tolak
+                                          </button>
+                                        </>
+                                      )}
+
+                                      {u.role === "admin" && !isSelf && (
+                                        <button
+                                          onClick={() => handleUpdateUserRole(u.id, "user")}
+                                          className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 font-bold text-xs rounded-xl transition-all active:scale-95 cursor-pointer"
+                                        >
+                                          Cabut Akses Admin
+                                        </button>
+                                      )}
+
+                                      {u.role === "user" && (
+                                        <button
+                                          onClick={() => handleUpdateUserRole(u.id, "admin")}
+                                          className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs rounded-xl transition-all active:scale-95 cursor-pointer"
+                                        >
+                                          Jadikan Admin
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        
+                        {usersList.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="px-8 py-12 text-center text-gray-400 text-sm">
+                              Belum ada pengguna terdaftar di sistem.
+                            </td>
+                          </tr>
+                        )}
+                        
+                        {usersList.length > 0 && usersList.filter(u => {
+                          const matchSearch = (u.name || "").toLowerCase().includes(searchUserQuery.toLowerCase()) || 
+                                              (u.email || "").toLowerCase().includes(searchUserQuery.toLowerCase());
+                          if (!matchSearch) return false;
+
+                          if (filterUserRole === "Menunggu Persetujuan") return u.role === "pending_admin";
+                          if (filterUserRole === "Admin") return u.role === "admin";
+                          if (filterUserRole === "Anggota Biasa") return u.role === "user";
+                          return true;
+                        }).length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="px-8 py-12 text-center text-gray-400 text-sm">
+                              Tidak ada hasil pengguna yang cocok dengan kriteria filter atau pencarian Anda.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Other tabs fallback */}
+            {activeTab !== "dashboard" && activeTab !== "news" && activeTab !== "aspirations" && activeTab !== "members" && activeTab !== "gallery" && activeTab !== "akd" && activeTab !== "user_management" && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6 text-gray-400">
                   <Settings size={40} />

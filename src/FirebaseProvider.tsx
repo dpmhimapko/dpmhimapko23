@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth, db, onAuthStateChanged, FirebaseUser, doc, getDoc, setDoc, OperationType, handleFirestoreError, collection, query, where, getDocs, addDoc, writeBatch } from './firebase';
+import { auth, db, onAuthStateChanged, FirebaseUser, doc, getDoc, setDoc, OperationType, handleFirestoreError, collection, query, where, getDocs, addDoc, writeBatch, onSnapshot } from './firebase';
 
 interface AuthContextType {
   user: FirebaseUser | null;
-  role: 'admin' | 'user' | null;
+  role: 'admin' | 'user' | 'pending_admin' | null;
   loading: boolean;
   isAuthReady: boolean;
 }
@@ -19,55 +19,69 @@ export const useAuth = () => useContext(AuthContext);
 
 export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [role, setRole] = useState<'admin' | 'user' | null>(null);
+  const [role, setRole] = useState<'admin' | 'user' | 'pending_admin' | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubUserDoc: (() => void) | null = null;
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       
-      if (firebaseUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          const isMasterAdmin = firebaseUser.email === 'aahdan298@gmail.com' && firebaseUser.emailVerified;
-          
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            // If it's the master admin but the role in DB is not admin, update it or just set it in state
-            if (isMasterAdmin && userData.role !== 'admin') {
-              setRole('admin');
-              // Optionally update the DB
-              await setDoc(doc(db, 'users', firebaseUser.uid), { ...userData, role: 'admin' }, { merge: true });
-            } else {
-              setRole(userData.role as 'admin' | 'user');
-            }
-          } else {
-            // Create default user profile if not exists
-            const newUser = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              name: firebaseUser.displayName || '',
-              role: isMasterAdmin ? 'admin' : 'user',
-              createdAt: new Date(),
-            };
-            await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-            setRole(newUser.role as 'admin' | 'user');
-          }
-        } catch (error) {
-          console.error('Error fetching user role:', error);
-          if (firebaseUser.email === 'aahdan298@gmail.com' && firebaseUser.emailVerified) {
-            setRole('admin');
-          }
-        }
-      } else {
-        setRole(null);
+      if (unsubUserDoc) {
+        unsubUserDoc();
+        unsubUserDoc = null;
       }
       
-      setLoading(false);
-      setIsAuthReady(true);
-
-      // Seeding Logic - Runs once when auth is ready
+      if (firebaseUser) {
+        const isMasterAdmin = firebaseUser.email === 'aahdan298@gmail.com';
+        
+        unsubUserDoc = onSnapshot(doc(db, 'users', firebaseUser.uid), async (userDoc) => {
+          try {
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              if (isMasterAdmin && userData.role !== 'admin') {
+                setRole('admin');
+                await setDoc(doc(db, 'users', firebaseUser.uid), { ...userData, role: 'admin' }, { merge: true });
+              } else {
+                setRole(userData.role as 'admin' | 'user' | 'pending_admin');
+              }
+            } else {
+              const newUser = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                name: firebaseUser.displayName || '',
+                role: isMasterAdmin ? 'admin' : 'user',
+                createdAt: new Date(),
+              };
+              await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
+              setRole(newUser.role as 'admin' | 'user' | 'pending_admin');
+            }
+          } catch (error) {
+            console.error('Error in user doc snap:', error);
+            if (isMasterAdmin) {
+              setRole('admin');
+            }
+          } finally {
+            setLoading(false);
+            setIsAuthReady(true);
+          }
+        }, (error) => {
+          console.error('User doc onSnapshot error:', error);
+          if (isMasterAdmin) {
+            setRole('admin');
+          }
+          setLoading(false);
+          setIsAuthReady(true);
+        });
+      } else {
+        setRole(null);
+        setLoading(false);
+        setIsAuthReady(true);
+      }
+      
+      // Seeding Logic - Runs once when auth acts
       const seedData = async () => {
         try {
           const newsTitle = "Pelantikan Pengurus Baru DPM & BEM HIMA PKO 2025 - 2026";

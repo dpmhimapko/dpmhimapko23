@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { ShieldCheck, ArrowRight, AlertCircle, LogIn } from "lucide-react";
+import { ShieldCheck, ArrowRight, AlertCircle, LogIn, Hourglass } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
-import { auth, googleProvider, signInWithPopup, signOut } from "../firebase";
+import { auth, googleProvider, signInWithPopup, signOut, db, doc, updateDoc } from "../firebase";
 import { useAuth } from "../FirebaseProvider";
+import toast from "react-hot-toast";
 
 export default function Login() {
   const [error, setError] = useState("");
@@ -14,13 +15,28 @@ export default function Login() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      if (role === 'admin') {
+      if (role === 'admin' || user.email === 'aahdan298@gmail.com') {
         navigate("/admin");
-      } else if (role === 'user') {
-        setError("Akun Anda (" + user.email + ") tidak memiliki hak akses administrator. Silakan hubungi admin utama atau masuk dengan akun lain.");
       }
     }
   }, [user, role, authLoading, navigate]);
+
+  const handleRequestAdmin = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    setError("");
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        role: "pending_admin"
+      });
+      toast.success("Permintaan akses admin berhasil dikirim!");
+    } catch (err: any) {
+      console.error("Request admin error:", err);
+      setError("Gagal mengirimkan permintaan akses admin. Silakan coba lagi.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     setIsLoading(true);
@@ -54,6 +70,17 @@ export default function Login() {
       setIsLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-20">
+        <div className="max-w-md w-full flex flex-col items-center justify-center text-center">
+          <div className="w-12 h-12 border-4 border-maroon-600/30 border-t-maroon-600 rounded-full animate-spin mb-4" />
+          <p className="text-gray-500 text-xs font-bold animate-pulse">Memuat Sesi...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-20">
@@ -113,9 +140,9 @@ export default function Login() {
                 )}
               </button>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-maroon-600 rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="w-10 h-10 bg-maroon-600 rounded-full flex items-center justify-center text-white font-bold shrink-0 shadow-sm animate-pulse">
                     {user.email?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-grow overflow-hidden">
@@ -123,10 +150,64 @@ export default function Login() {
                     <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
                 </div>
+
+                {user.email === 'aahdan298@gmail.com' ? (
+                  <div className="p-5 bg-maroon-50 border border-maroon-100 rounded-2xl space-y-3 flex flex-col items-center text-center">
+                    <div className="w-8 h-8 border-3 border-maroon-600/30 border-t-maroon-600 rounded-full animate-spin" />
+                    <p className="text-xs text-maroon-700 font-bold animate-pulse">
+                      Menghubungkan ke Dasbor Admin Utama...
+                    </p>
+                  </div>
+                ) : role === "pending_admin" ? (
+                  <div className="p-5 bg-amber-50 border border-amber-100 rounded-2xl space-y-3">
+                    <div className="flex items-center space-x-2.5 text-amber-700 font-bold text-sm">
+                      <Hourglass size={18} className="animate-spin text-amber-600" />
+                      <span>Menunggu Persetujuan Admin Utama</span>
+                    </div>
+                    <p className="text-xs text-amber-600 leading-relaxed font-bold">
+                      Pengajuan akses admin Anda untuk akun <strong>{user.email}</strong> sedang ditinjau. Silakan tunggu atau hubungi admin utama (aahdan298@gmail.com) agar dapat disetujui.
+                    </p>
+                    <div className="flex items-center justify-center pt-2">
+                      <div className="flex space-x-1">
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce"></span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-5 bg-blue-50/55 border border-blue-100/50 rounded-2xl space-y-3">
+                    <div className="flex items-center space-x-2.5 text-blue-700 font-bold text-sm">
+                      <ShieldCheck size={18} />
+                      <span>Belum Ada Akses Admin</span>
+                    </div>
+                    <p className="text-xs text-blue-600 leading-relaxed font-bold">
+                      Akun ini belum memiliki otorisasi untuk mengelola website DPM HIMA PKO.
+                    </p>
+                    <button
+                      onClick={handleRequestAdmin}
+                      disabled={isLoading}
+                      className={cn(
+                        "w-full py-3 bg-maroon-600 hover:bg-maroon-700 text-white font-bold rounded-xl text-xs transition-all active:scale-95 shadow-sm inline-flex items-center justify-center space-x-2 cursor-pointer",
+                        isLoading && "opacity-75 cursor-not-allowed"
+                      )}
+                    >
+                      {isLoading ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <ShieldCheck size={14} />
+                          <span>Ajukan Permintaan Jadi Admin</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
                 <button
                   onClick={handleLogout}
                   disabled={isLoading}
-                  className="w-full py-4 bg-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-200 transition-all"
+                  className="w-full py-4 bg-gray-50 border border-gray-100 text-gray-600 hover:text-gray-900 font-bold rounded-2xl hover:bg-gray-100 transition-all text-sm active:scale-95 cursor-pointer"
                 >
                   Keluar & Gunakan Akun Lain
                 </button>

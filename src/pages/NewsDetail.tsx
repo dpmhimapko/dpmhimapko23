@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { motion } from "motion/react";
-import { Calendar, User, ArrowLeft, Share2, Tag, Trophy, Star, Megaphone, Newspaper, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { Calendar, User, ArrowLeft, Share2, Tag, Trophy, Star, Megaphone, Newspaper, ChevronLeft, ChevronRight, ShieldCheck, Link2, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/src/lib/utils";
+import { toast } from "react-hot-toast";
 import { db, doc, getDoc, OperationType, handleFirestoreError } from "../firebase";
 
 export default function NewsDetail() {
@@ -11,6 +12,30 @@ export default function NewsDetail() {
   const [news, setNews] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const shareUrl = window.location.href;
+  const shareText = news ? `Baca berita terbaru: ${news.title}` : "Berita DPM HIMA PKO UPI";
+
+  const shareLinks = {
+    whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + " - " + shareUrl)}`,
+    twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareUrl)
+      .then(() => {
+        setCopied(true);
+        toast.success("Link berita disalin!");
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error("Gagal menyalin link:", err);
+        toast.error("Gagal menyalin link");
+      });
+  };
 
   const getDirectDriveUrl = (url: string) => {
     if (!url) return "";
@@ -136,15 +161,101 @@ export default function NewsDetail() {
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 relative">
               <div className="text-right hidden sm:block mr-2">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Estimasi Baca</div>
                 <div className="text-xs font-bold text-gray-900">{Math.ceil((news.content?.length || 0) / 1000)} Menit</div>
               </div>
-              <button className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-maroon-50 hover:text-maroon-600 transition-all font-bold text-sm">
-                <Share2 size={18} />
-                <span>Bagikan</span>
-              </button>
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setShowShareMenu(!showShareMenu)}
+                  className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-maroon-50 hover:text-maroon-600 transition-all font-bold text-sm active:scale-95 duration-200"
+                >
+                  <Share2 size={18} />
+                  <span>Bagikan</span>
+                </button>
+
+                <AnimatePresence>
+                  {showShareMenu && (
+                    <>
+                      {/* Backdrop to close the menu on click */}
+                      <div 
+                        className="fixed inset-0 z-40 cursor-default" 
+                        onClick={() => setShowShareMenu(false)} 
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute right-0 mt-2 w-56 bg-white border border-gray-150 rounded-2xl shadow-xl p-2 z-50 origin-top-right overflow-hidden border border-gray-100"
+                      >
+                        <div className="px-3 py-2 text-[10px] font-black text-gray-400 uppercase tracking-wider border-b border-gray-50 mb-1">
+                          Bagikan Berita
+                        </div>
+                        
+                        <a 
+                          href={shareLinks.whatsapp}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setShowShareMenu(false)}
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all font-bold"
+                        >
+                          <span className="text-emerald-500">
+                            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                              <path d="M12.004 2C6.48 2 2 6.48 2 12c0 1.8.48 3.48 1.32 4.92L2 22l5.28-1.32c1.38.78 2.94 1.32 4.72 1.32 5.52 0 10-4.48 10-10S17.52 2 12.004 2zm5.76 13.92c-.24.72-1.2 1.32-1.92 1.56-.6.12-1.32.24-3.6-.72-2.88-1.2-4.68-4.08-4.8-4.32-.12-.24-1.08-1.44-1.08-2.76s.66-2.04.9-2.28c.24-.24.48-.36.72-.36h.48c.12 0 .36 0 .48.36.12.36.6 1.56.66 1.68.06.12.12.24 0 .48-.06.24-.18.36-.36.6-.18.24-.36.36-.54.6-.18.18-.36.42-.12.78.24.42.96 1.62 2.04 2.58 1.44 1.32 2.64 1.68 3 1.86.36.18.6 0 .78-.18.24-.24.9-1.08 1.14-1.44.24-.36.48-.3.78-.18.3.12 1.92.9 2.22 1.08.3.18.48.3.54.42.12.36.12 1.08-.12 1.8z"/>
+                            </svg>
+                          </span>
+                          <span>WhatsApp</span>
+                        </a>
+
+                        <a 
+                          href={shareLinks.twitter}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setShowShareMenu(false)}
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-600 hover:text-black hover:bg-gray-100 rounded-xl transition-all font-bold"
+                        >
+                          <span className="text-gray-900 bg-gray-50 p-0.5 rounded-md">
+                            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                          </span>
+                          <span>Twitter / X</span>
+                        </a>
+
+                        <a 
+                          href={shareLinks.facebook}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setShowShareMenu(false)}
+                          className="flex items-center space-x-3 px-3 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all font-bold"
+                        >
+                          <span className="text-blue-600">
+                            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                              <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/>
+                            </svg>
+                          </span>
+                          <span>Facebook</span>
+                        </a>
+
+                        <button 
+                          onClick={() => {
+                            handleCopyLink();
+                            setShowShareMenu(false);
+                          }}
+                          className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-600 hover:text-maroon-600 hover:bg-maroon-50 rounded-xl transition-all font-bold"
+                        >
+                          <span className="text-maroon-600">
+                            {copied ? <Check size={18} /> : <Link2 size={18} />}
+                          </span>
+                          <span>{copied ? "Disalin!" : "Salin Link"}</span>
+                        </button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
@@ -227,11 +338,49 @@ export default function NewsDetail() {
           <div className="flex items-center space-x-3">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Share:</span>
             <div className="flex items-center space-x-2">
-              {['WhatsApp', 'Twitter', 'Facebook'].map(platform => (
-                <button key={platform} className="w-9 h-9 rounded-xl bg-gray-50 text-gray-400 hover:bg-maroon-50 hover:text-maroon-600 transition-all flex items-center justify-center">
-                  <Share2 size={16} />
-                </button>
-              ))}
+              <a 
+                href={shareLinks.whatsapp}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Bagikan ke WhatsApp"
+                className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 hover:scale-105 active:scale-95 transition-all flex items-center justify-center border border-gray-100"
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M12.004 2C6.48 2 2 6.48 2 12c0 1.8.48 3.48 1.32 4.92L2 22l5.28-1.32c1.38.78 2.94 1.32 4.72 1.32 5.52 0 10-4.48 10-10S17.52 2 12.004 2zm5.76 13.92c-.24.72-1.2 1.32-1.92 1.56-.6.12-1.32.24-3.6-.72-2.88-1.2-4.68-4.08-4.8-4.32-.12-.24-1.08-1.44-1.08-2.76s.66-2.04.9-2.28c.24-.24.48-.36.72-.36h.48c.12 0 .36 0 .48.36.12.36.6 1.56.66 1.68.06.12.12.24 0 .48-.06.24-.18.36-.36.6-.18.24-.36.36-.54.6-.18.18-.36.42-.12.78.24.42.96 1.62 2.04 2.58 1.44 1.32 2.64 1.68 3 1.86.36.18.6 0 .78-.18.24-.24.9-1.08 1.14-1.44.24-.36.48-.3.78-.18.3.12 1.92.9 2.22 1.08.3.18.48.3.54.42.12.36.12 1.08-.12 1.8z"/>
+                </svg>
+              </a>
+
+              <a 
+                href={shareLinks.twitter}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Bagikan ke Twitter / X"
+                className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-black hover:scale-105 active:scale-95 transition-all flex items-center justify-center border border-gray-100"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </a>
+
+              <a 
+                href={shareLinks.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Bagikan ke Facebook"
+                className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-blue-50 hover:text-blue-600 hover:scale-105 active:scale-95 transition-all flex items-center justify-center border border-gray-100"
+              >
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/>
+                </svg>
+              </a>
+
+              <button 
+                onClick={handleCopyLink}
+                title="Salin Link Berita"
+                className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:bg-maroon-50 hover:text-maroon-600 hover:scale-105 active:scale-95 transition-all flex items-center justify-center border border-gray-100"
+              >
+                {copied ? <Check size={18} className="text-maroon-600" /> : <Link2 size={18} />}
+              </button>
             </div>
           </div>
         </div>
