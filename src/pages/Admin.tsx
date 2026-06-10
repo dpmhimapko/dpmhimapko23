@@ -483,8 +483,8 @@ export default function Admin() {
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-8"
               >
-                {/* Pending Admin Requests Alert Banner for Main Admin */}
-                {isMainAdmin && usersList.some(u => u.role === 'pending_admin') && (
+                {/* Pending Admin Requests Alert Banner for Admin & Main Admin */}
+                {(isMainAdmin || role === "admin") && usersList.some(u => u.role === 'pending_admin') && (
                   <div className="bg-amber-50 border border-amber-200 rounded-[32px] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-amber-500 text-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm animate-bounce">
@@ -1129,7 +1129,7 @@ export default function Admin() {
             )}
 
             {/* User Management Tab */}
-            {activeTab === "user_management" && isMainAdmin && (
+            {activeTab === "user_management" && (isMainAdmin || role === "admin") && (
               <motion.div
                 key="user_management"
                 initial={{ opacity: 0, y: 20 }}
