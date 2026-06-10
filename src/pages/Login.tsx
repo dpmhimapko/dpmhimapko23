@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { ShieldCheck, ArrowRight, AlertCircle, LogIn, Hourglass } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { cn } from "@/src/lib/utils";
-import { auth, googleProvider, signInWithPopup, signOut, db, doc, updateDoc } from "../firebase";
+import { auth, googleProvider, signInWithPopup, signOut, db, doc, setDoc } from "../firebase";
 import { useAuth } from "../FirebaseProvider";
 import toast from "react-hot-toast";
 
@@ -26,9 +26,13 @@ export default function Login() {
     setIsLoading(true);
     setError("");
     try {
-      await updateDoc(doc(db, "users", user.uid), {
-        role: "pending_admin"
-      });
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: user.email || "",
+        name: user.displayName || "",
+        role: "pending_admin",
+        createdAt: new Date()
+      }, { merge: true });
       toast.success("Permintaan akses admin berhasil dikirim!");
     } catch (err: any) {
       console.error("Request admin error:", err);
@@ -58,13 +62,15 @@ export default function Login() {
     } catch (err: any) {
       console.error("Login error:", err);
       if (err.code === 'auth/popup-blocked') {
-        setError("Popup diblokir oleh browser. Silakan izinkan popup atau klik tombol 'Open in new tab' di pojok kanan atas aplikasi.");
+        setError("Popup masuk Google diblokir oleh browser Anda. Silakan izinkan popup di pengaturan browser Anda atau buka aplikasi di tab baru.");
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        setError("Proses masuk dibatalkan karena jendela login Google ditutup.");
       } else if (err.code === 'auth/cancelled-popup-request') {
-        setError("Proses masuk dibatalkan.");
+        setError("Permintaan login Google dibatalkan.");
       } else if (err.code === 'auth/network-request-failed') {
-        setError("Koneksi internet bermasalah. Silakan coba lagi.");
+        setError("Gagal masuk karena masalah koneksi internet. Silakan coba lagi.");
       } else {
-        setError("Gagal masuk dengan Google. Pastikan Anda menggunakan akun yang terdaftar sebagai admin.");
+        setError(`Gagal masuk dengan Google: ${err.message || "Silakan coba lagi beberapa saat lagi."}`);
       }
     } finally {
       setIsLoading(false);
