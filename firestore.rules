@@ -80,6 +80,10 @@ service cloud.firestore {
         );
     }
 
+    function isMainAdmin() {
+      return isAuthenticated() && request.auth.token.email == "aahdan298@gmail.com";
+    }
+
     function isValidEmail(email) {
       return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
@@ -167,10 +171,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
-                    (isOwner(userId) && request.resource.data.role in ['user', 'pending_admin'] || isAdmin());
+                    (isOwner(userId) && request.resource.data.role in ['user', 'pending_admin'] || isMainAdmin());
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
-                    (isOwner(userId) && (request.resource.data.role == resource.data.role || (resource.data.role == 'user' && request.resource.data.role == 'pending_admin')) || isAdmin());
-      allow delete: if isAdmin();
+                    (isOwner(userId) && (request.resource.data.role == resource.data.role || (resource.data.role == 'user' && request.resource.data.role == 'pending_admin')) || isMainAdmin());
+      allow delete: if isMainAdmin();
     }
 
     match /news/{newsId} {

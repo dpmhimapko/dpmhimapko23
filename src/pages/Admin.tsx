@@ -49,7 +49,7 @@ export default function Admin() {
   
   const isMainAdmin = user?.email === "aahdan298@gmail.com";
   
-  const availableTabs = isMainAdmin
+  const availableTabs = (isMainAdmin || role === "admin")
     ? [
         ...tabs.slice(0, 6),
         { id: "user_management", name: "Persetujuan Admin", icon: ShieldCheck },
@@ -113,7 +113,7 @@ export default function Admin() {
     });
 
     let unsubUsers = () => {};
-    if (isMainAdmin) {
+    if (isMainAdmin || role === "admin") {
       unsubUsers = onSnapshot(query(collection(db, "users"), orderBy("createdAt", "desc")), (snap) => {
         setUsersList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       }, (error) => {
@@ -127,11 +127,15 @@ export default function Admin() {
       unsubMembers();
       unsubGallery();
       unsubDivisions();
-      if (isMainAdmin) unsubUsers();
+      if (isMainAdmin || role === "admin") unsubUsers();
     };
   }, [role, isMainAdmin]);
 
   const handleUpdateUserRole = async (targetUserId: string, newRole: string) => {
+    if (!isMainAdmin) {
+      toast.error("Hanya Admin Utama yang dapat menyetujui atau mengubah peran!");
+      return;
+    }
     try {
       await updateDoc(doc(db, "users", targetUserId), {
         role: newRole
@@ -1266,6 +1270,8 @@ export default function Admin() {
                                 <td className="px-8 py-6 text-right">
                                   {isCurrentMainAdmin ? (
                                     <span className="text-xs text-gray-400 font-bold italic">Sistem Utama</span>
+                                  ) : !isMainAdmin ? (
+                                    <span className="text-xs text-gray-400 font-medium italic select-none">Hanya Admin Utama</span>
                                   ) : (
                                     <div className="flex items-center justify-end space-x-2">
                                       {u.role === "pending_admin" && (
